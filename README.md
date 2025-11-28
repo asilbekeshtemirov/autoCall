@@ -87,7 +87,7 @@ npm run dev
 yarn dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:4173](http://localhost:4173) in your browser.
 
 ## 🔐 Authentication Flow
 
@@ -269,7 +269,7 @@ FROM node:18-alpine
 WORKDIR /app
 COPY . .
 RUN npm install && npm run build
-EXPOSE 3000
+EXPOSE 4173
 CMD ["npm", "start"]
 ```
 

@@ -4,9 +4,9 @@
   "description": "Sipuni Autocall Cloud Web Platform",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 4173",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 4173",
     "lint": "next lint"
   },
   "dependencies": {

@@ -36,15 +36,24 @@ export interface FormattedReport {
 
 /**
  * Format campaign creation/details response
+ * Handles Sipuni API response: { data: { autocall: { id, name, ... } } }
  */
 export function formatCampaign(data: any): FormattedCampaign {
+  // Extract campaign object if it's nested
+  let campaignObj = data;
+  if (data && data.data && data.data.autocall) {
+    campaignObj = data.data.autocall;
+  } else if (data && data.autocall) {
+    campaignObj = data.autocall;
+  }
+
   return {
     success: true,
-    id: data.id || data.autocallId || '',
-    name: data.name || '',
-    type: data.type || 'default',
-    status: data.state === 0 ? 'paused' : data.state === 1 ? 'active' : 'unknown',
-    createdAt: data.created_at || data.createdAt || new Date().toISOString(),
+    id: campaignObj.id || campaignObj.autocallId || '',
+    name: campaignObj.name || '',
+    type: campaignObj.type || 'default',
+    status: campaignObj.state === 0 ? 'paused' : campaignObj.state === 1 ? 'active' : 'unknown',
+    createdAt: campaignObj.created_at || campaignObj.createdAt || new Date().toISOString(),
   };
 }
 

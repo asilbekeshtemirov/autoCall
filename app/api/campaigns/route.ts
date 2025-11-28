@@ -65,16 +65,40 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/campaigns
+ *
+ * Accepts simplified campaign data from frontend and maps it to Sipuni API format
  */
 export async function POST(request: NextRequest) {
   return withAuth(request, async (user, req) => {
     try {
       const body = await req.json();
 
-      console.log('[API /campaigns POST] Creating campaign:', body);
-      const response = await SipuniAPI.createCampaign(body);
+      console.log('[API /campaigns POST] Received campaign data:', body);
 
-      // Format response - show success/fail with key details
+      // Map frontend payload to Sipuni API payload structure
+      // Based on working curl: https://apilk.sipuni.com/api/ver2/autocall/
+      const sipuniPayload = {
+        name: body.name || '',
+        description: body.description || '',
+        cooldown: body.cooldown ? parseInt(body.cooldown) : 60,
+        strategy: body.strategy || 1,
+        isRoboCall: body.isRoboCall || 0,
+        type: body.type || 'default',
+        maxConnections: body.maxConnections ? parseInt(body.maxConnections) : 1,
+        distributor: body.distributor || 0,
+        defaultInTree: body.defaultInTree !== undefined ? body.defaultInTree : 1,
+        outLineId: body.outLineId ? parseInt(body.outLineId) : 0,
+        treeId: body.treeId || 0,
+        userId: body.userId || 0,
+      };
+
+      console.log('[API /campaigns POST] Mapped to Sipuni payload:', sipuniPayload);
+
+      const response = await SipuniAPI.createCampaign(sipuniPayload);
+
+      console.log('[API /campaigns POST] Sipuni response:', JSON.stringify(response, null, 2));
+
+      // Format response - formatCampaign handles nested response.data.autocall structure
       const formattedData = formatCampaign(response);
 
       console.log('[API /campaigns POST] Campaign created:', formattedData);

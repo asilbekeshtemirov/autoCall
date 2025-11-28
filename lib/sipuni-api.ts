@@ -204,6 +204,14 @@ export class SipuniAPI {
   }
 
   /**
+   * Get available phone lines
+   */
+  async getPhoneLines(): Promise<any[]> {
+    const response = await this.client.get('/api/lines');
+    return response.data.data || [];
+  }
+
+  /**
    * Upload phone numbers to campaign
    */
   async uploadPhoneNumbers(campaignId: string, numbers: string[]): Promise<any> {

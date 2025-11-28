@@ -11,9 +11,19 @@
 
 const SIPUNI_API_BASE_URL = process.env.SIPUNI_API_BASE_URL || 'https://apilk.sipuni.com/api/ver2';
 const SIPUNI_TOKEN = process.env.SIPUNI_TOKEN;
+const SIPUNI_AUTOCALL_TOKEN = process.env.SIPUNI_AUTOCALL_TOKEN || SIPUNI_TOKEN; // Separate token for autocall endpoint if needed
 
 if (!SIPUNI_TOKEN) {
   console.warn('⚠️ SIPUNI_TOKEN not found in environment variables. API calls will fail.');
+} else {
+  console.log('✅ SIPUNI_TOKEN loaded.');
+  console.log('   Length:', SIPUNI_TOKEN.length);
+  console.log('   Starts:', SIPUNI_TOKEN.substring(0, 50));
+  console.log('   Ends:', SIPUNI_TOKEN.substring(SIPUNI_TOKEN.length - 50));
+}
+
+if (SIPUNI_AUTOCALL_TOKEN !== SIPUNI_TOKEN) {
+  console.log('✅ SIPUNI_AUTOCALL_TOKEN loaded (separate token for /autocall endpoint).');
 }
 
 /**
@@ -31,13 +41,20 @@ export async function callSipuni<T = any>(
 
   const url = `${SIPUNI_API_BASE_URL}${endpoint}`;
 
+  // Use separate token for /autocall endpoint if configured
+  const token = endpoint.includes('/autocall') ? SIPUNI_AUTOCALL_TOKEN : SIPUNI_TOKEN;
+  const authHeader = `Bearer ${token}`;
   const options: RequestInit = {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SIPUNI_TOKEN}`,
+      'Authorization': authHeader,
     },
   };
+
+  console.log('🔐 Auth header length:', authHeader.length);
+  console.log('🔐 Auth header first 30 chars:', authHeader.substring(0, 30));
+  console.log('🔐 Auth header last 30 chars:', authHeader.substring(authHeader.length - 30));
 
   if (method !== 'GET' && data) {
     options.body = JSON.stringify(data);
@@ -49,6 +66,7 @@ export async function callSipuni<T = any>(
       method,
       url,
       body: data,
+      authHeader: `Bearer ${SIPUNI_TOKEN.substring(0, 20)}...${SIPUNI_TOKEN.substring(SIPUNI_TOKEN.length - 10)}`,
     });
 
     // Use AbortController for proper timeout handling in Node.js
@@ -56,6 +74,7 @@ export async function callSipuni<T = any>(
     const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
     options.signal = controller.signal;
 
+    console.log('📨 Sending request with Authorization header');
     const response = await fetch(url, options);
     clearTimeout(timeoutId);
 
@@ -80,13 +99,19 @@ export async function callSipuni<T = any>(
         status: response.status,
         statusText: response.statusText,
         errorData,
+        fullResponse: errorData,
       });
 
-      throw new Error(
+      const errorMessage =
         errorData.error ||
         errorData.message ||
-        `Sipuni API error: ${response.status} ${response.statusText}`
-      );
+        errorData.msg ||
+        errorData.description ||
+        `Sipuni API error: ${response.status} ${response.statusText}`;
+
+      console.error(`❌ Error for endpoint ${endpoint}: ${errorMessage}`);
+
+      throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
@@ -140,10 +165,19 @@ export const SipuniAPI = {
   },
 
   /**
+   * Select/Mark line as selected in campaign
+   * Endpoint: PUT /autocall-outline/?autocall={id}
+   * Body: { selected: true/false }
+   */
+  selectLine: async (id: string, selected: boolean = true) => {
+    return callSipuni(`/autocall-outline/?autocall=${id}`, 'POST', { selected });
+  },
+
+  /**
    * Create new campaign
    */
   createCampaign: async (data: any) => {
-    return callSipuni('/autocall', 'POST', data);
+    return callSipuni('/autocall/', 'POST', data);
   },
 
   /**
@@ -261,6 +295,13 @@ export const SipuniAPI = {
    */
   getEmployeeExtensions: async () => {
     return callSipuni('/employees/empExt', 'GET');
+  },
+
+  /**
+   * Get available phone lines/outlines
+   */
+  getPhoneLines: async () => {
+    return callSipuni('/lines/', 'GET');
   },
 };
 

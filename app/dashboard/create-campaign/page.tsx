@@ -16,11 +16,12 @@ import Link from 'next/link';
 interface FormData {
   name: string;
   description: string;
+  outLineId?: string;
   operatorId?: string;
-  lineId?: string;
-  answerText?: string;
-  maxRetries?: number;
-  retryInterval?: number;
+  cooldown?: number;
+  maxConnections?: number;
+  strategy?: number;
+  type?: string;
 }
 
 export default function CreateCampaignPage() {
@@ -31,11 +32,12 @@ export default function CreateCampaignPage() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
+    outLineId: '',
     operatorId: '',
-    lineId: '',
-    answerText: '',
-    maxRetries: 3,
-    retryInterval: 60,
+    cooldown: 60,
+    maxConnections: 1,
+    strategy: 1,
+    type: 'default',
   });
 
   const [operators, setOperators] = useState<any[]>([]);
@@ -55,18 +57,36 @@ export default function CreateCampaignPage() {
       setError(null);
       const api = getSipuniAPI();
 
-      const [operatorsData, linesData] = await Promise.all([
-        api.getEmployees().catch(() => []),
-        api.getEmployeeExtensions().catch(() => []),
-      ]);
+      console.log('[CreateCampaignPage] Loading operators and phone lines...');
 
-      console.log('Operators Data:', operatorsData);
-      console.log('Lines Data:', linesData);
+      // Try to fetch from API first
+      let linesData = [];
+      try {
+        linesData = await api.getPhoneLines();
+        console.log('[CreateCampaignPage] Phone lines fetched from API:', linesData);
+      } catch (err) {
+        console.warn('[CreateCampaignPage] Failed to fetch phone lines from API, using defaults:', err);
+        // Fallback: Use hardcoded phone lines (from your Sipuni account)
+        linesData = [
+          { id: 9881507, name: 'mvp project', selected: false },
+          { id: 8404457, name: '998785555505', selected: true },
+        ];
+      }
+
+      const operatorsData = await api.getEmployees().catch((err) => {
+        console.warn('[CreateCampaignPage] Failed to fetch operators:', err);
+        return [];
+      });
+
+      console.log('[CreateCampaignPage] Operators Data:', operatorsData);
+      console.log('[CreateCampaignPage] Phone Lines Data:', linesData);
+      console.log('[CreateCampaignPage] Phone Lines length:', linesData?.length || 0);
 
       setOperators(Array.isArray(operatorsData) ? operatorsData : []);
       setLines(Array.isArray(linesData) ? linesData : []);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load operators and lines';
+      console.error('[CreateCampaignPage] Error loading data:', message, err);
       setError(message);
     } finally {
       setIsLoading(false);
@@ -90,11 +110,31 @@ export default function CreateCampaignPage() {
       return;
     }
 
+    if (!formData.outLineId) {
+      setError('Please select a phone line for the campaign');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const api = getSipuniAPI();
-      const result = await api.createCampaign(formData);
+
+      // Prepare campaign data with all required fields
+      const campaignData = {
+        name: formData.name,
+        description: formData.description,
+        outLineId: parseInt(formData.outLineId),
+        cooldown: formData.cooldown || 60,
+        maxConnections: formData.maxConnections || 1,
+        strategy: formData.strategy || 1,
+        type: formData.type || 'default',
+      };
+
+      console.log('[CreateCampaignPage] Submitting campaign data:', campaignData);
+      const result = await api.createCampaign(campaignData);
+
+      console.log('[CreateCampaignPage] Campaign created:', result);
 
       if (result && result.id) {
         router.push(`/dashboard/campaigns/${result.id}`);
@@ -225,18 +265,18 @@ export default function CreateCampaignPage() {
 
             {/* Line Selection */}
             <div>
-              <label htmlFor="lineId" className="block text-sm font-medium text-gray-700 mb-2">
-                Assign Line
+              <label htmlFor="outLineId" className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Line <span className="text-red-600">*</span>
               </label>
               <select
-                id="lineId"
-                name="lineId"
-                value={formData.lineId}
+                id="outLineId"
+                name="outLineId"
+                value={formData.outLineId}
                 onChange={handleChange}
                 disabled={isSubmitting || lines.length === 0}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
-                <option value="">Select a line...</option>
+                <option value="">Select a phone line...</option>
                 {lines.map((line) => (
                   <option key={line.id} value={line.id}>
                     {line.name || line.number || line.id}
@@ -248,58 +288,58 @@ export default function CreateCampaignPage() {
               )}
             </div>
 
-            {/* Answer Text */}
-            <div>
-              <label htmlFor="answerText" className="block text-sm font-medium text-gray-700 mb-2">
-                Answer Text / Message
-              </label>
-              <textarea
-                id="answerText"
-                name="answerText"
-                value={formData.answerText}
-                onChange={handleChange}
-                placeholder="Message to be played when call is answered"
-                disabled={isSubmitting}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
-              />
-            </div>
-
-            {/* Max Retries */}
-            <div className="grid grid-cols-2 gap-6">
+            {/* Campaign Settings */}
+            <div className="grid grid-cols-3 gap-6">
+              {/* Cooldown */}
               <div>
-                <label htmlFor="maxRetries" className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Retries
+                <label htmlFor="cooldown" className="block text-sm font-medium text-gray-700 mb-2">
+                  Cooldown (seconds)
                 </label>
                 <input
-                  id="maxRetries"
+                  id="cooldown"
                   type="number"
-                  name="maxRetries"
-                  value={formData.maxRetries}
+                  name="cooldown"
+                  value={formData.cooldown}
                   onChange={handleChange}
                   min="0"
-                  max="10"
                   disabled={isSubmitting}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
-              {/* Retry Interval */}
+              {/* Max Connections */}
               <div>
-                <label htmlFor="retryInterval" className="block text-sm font-medium text-gray-700 mb-2">
-                  Retry Interval (seconds)
+                <label htmlFor="maxConnections" className="block text-sm font-medium text-gray-700 mb-2">
+                  Max Connections
                 </label>
                 <input
-                  id="retryInterval"
+                  id="maxConnections"
                   type="number"
-                  name="retryInterval"
-                  value={formData.retryInterval}
+                  name="maxConnections"
+                  value={formData.maxConnections}
                   onChange={handleChange}
-                  min="0"
-                  max="3600"
+                  min="1"
                   disabled={isSubmitting}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
+              </div>
+
+              {/* Campaign Type */}
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                  Campaign Type
+                </label>
+                <select
+                  id="type"
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange as any}
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="default">Default</option>
+                  <option value="default2">Default 2</option>
+                </select>
               </div>
             </div>
 

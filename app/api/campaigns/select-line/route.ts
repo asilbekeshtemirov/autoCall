@@ -22,8 +22,8 @@ export async function PUT(request: NextRequest) {
 
       console.log('[API /campaigns/select-line] Selecting line:', lineId);
 
-      // Update the line to set selected: true in Sipuni
-      const response = await SipuniAPI.updateCampaign(lineId, { selected: true });
+      // Update the line to set selected: true in Sipuni using selectLine method
+      const response = await SipuniAPI.selectLine(lineId, true);
 
       console.log('[API /campaigns/select-line] Line selected:', response);
 
