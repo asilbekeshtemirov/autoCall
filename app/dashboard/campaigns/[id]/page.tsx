@@ -41,6 +41,7 @@ export default function CampaignDetailPage() {
   const [selectedNumber, setSelectedNumber] = useState('');
   const [isSelectingNumber, setIsSelectingNumber] = useState(false);
   const [selectError, setSelectError] = useState<string | null>(null);
+  const [selectSuccess, setSelectSuccess] = useState<string | null>(null);
 
   // Find currently selected number from API
   const currentlySelected = availableNumbers.find((n: any) => n.selected);
@@ -59,8 +60,8 @@ export default function CampaignDetailPage() {
   const loadAvailableNumbers = async () => {
     try {
       const api = getSipuniAPI();
-      // Get available lines/numbers from new endpoint
-      const lines = await api.getAvailableLines();
+      // Get available lines/numbers from new endpoint with campaign ID
+      const lines = await api.getAvailableLines(campaignId);
 
       console.log('[loadAvailableNumbers] Lines:', lines);
 
@@ -82,21 +83,33 @@ export default function CampaignDetailPage() {
   };
 
   const handleSelectNumber = async () => {
-    if (!selectedNumber) return;
+    if (!selectedNumber || !campaignId) return;
 
     setIsSelectingNumber(true);
     setSelectError(null);
+    setSelectSuccess(null);
 
     try {
       const api = getSipuniAPI();
 
-      // Select the phone number/line - this sets selected: true in Sipuni
-      await api.selectPhoneNumber(selectedNumber);
+      // Select the phone number/line - this sets selected: true in Sipuni using PATCH method
+      await api.selectPhoneNumber(campaignId, selectedNumber);
+
+      // Find the selected line name for success message
+      const selectedLine = availableNumbers.find((n) => n.id === selectedNumber);
+      const selectedLineName = selectedLine?.name || selectedNumber;
+
+      setSelectSuccess(`✓ Phone line "${selectedLineName}" selected successfully!`);
 
       setSelectedNumber('');
       // Reload to show updated selection
       await loadAvailableNumbers();
       await loadCampaignDetails();
+
+      // Auto-clear success message after 3 seconds
+      setTimeout(() => {
+        setSelectSuccess(null);
+      }, 3000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to select phone number';
       setSelectError(message);
@@ -507,6 +520,12 @@ export default function CampaignDetailPage() {
                   {selectError && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded mb-3">
                       <p className="text-red-700 text-sm">{selectError}</p>
+                    </div>
+                  )}
+
+                  {selectSuccess && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded mb-3">
+                      <p className="text-green-700 text-sm font-medium">{selectSuccess}</p>
                     </div>
                   )}
 

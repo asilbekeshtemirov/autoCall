@@ -32,7 +32,7 @@ if (SIPUNI_AUTOCALL_TOKEN !== SIPUNI_TOKEN) {
  */
 export async function callSipuni<T = any>(
   endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' = 'GET',
   data?: any
 ): Promise<T> {
   if (!SIPUNI_TOKEN) {
@@ -166,11 +166,21 @@ export const SipuniAPI = {
 
   /**
    * Select/Mark line as selected in campaign
-   * Endpoint: PUT /autocall-outline/?autocall={id}
-   * Body: { selected: true/false }
+   * PATCH to /autocall-outline/ with NO query parameters (like Sipuni dashboard does)
+   * Body: { autocall: campaignId, id: lineId, selected: true }
    */
-  selectLine: async (id: string, selected: boolean = true) => {
-    return callSipuni(`/autocall-outline/?autocall=${id}`, 'POST', { selected });
+  selectLine: async (campaignId: string, lineId: string, selected: boolean = true) => {
+    const lineIdInt = parseInt(lineId, 10);
+    const campaignIdInt = parseInt(campaignId, 10);
+    const endpoint = `/autocall-outline/`;
+    const body = { autocall: campaignIdInt, id: lineIdInt, selected };
+    console.log('[SipuniAPI.selectLine] PATCH /autocall-outline/ endpoint:', endpoint);
+    console.log('[SipuniAPI.selectLine] PATCH body:', JSON.stringify(body));
+    const response = await callSipuni(endpoint, 'PATCH', body);
+    console.log('[SipuniAPI.selectLine] PATCH Response status code:', response?.statusCode);
+    console.log('[SipuniAPI.selectLine] PATCH Response success:', response?.success);
+    console.log('[SipuniAPI.selectLine] PATCH Response data selected values:', response?.data?.map((d: any) => ({ id: d.id, selected: d.selected })));
+    return response;
   },
 
   /**

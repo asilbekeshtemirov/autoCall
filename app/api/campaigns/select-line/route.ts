@@ -1,6 +1,6 @@
 /**
  * PUT /api/campaigns/select-line - Select a phone number/line for campaign
- * Sets selected: true on the specified line in Sipuni
+ * Sets selected: true on the specified line in Sipuni using PUT method
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,21 +11,25 @@ export async function PUT(request: NextRequest) {
   return withAuth(request, async (user, req) => {
     try {
       const body = await req.json();
-      const { lineId } = body;
+      const { lineId, campaignId } = body;
 
-      if (!lineId) {
+      if (!lineId || !campaignId) {
         return NextResponse.json(
-          { error: 'lineId is required' },
+          { error: 'lineId and campaignId are required' },
           { status: 400 }
         );
       }
 
-      console.log('[API /campaigns/select-line] Selecting line:', lineId);
+      console.log('[API /campaigns/select-line] Selecting line:', lineId, 'for campaign:', campaignId);
+      console.log('[API /campaigns/select-line] Request body:', { id: lineId, selected: true });
 
-      // Update the line to set selected: true in Sipuni using selectLine method
-      const response = await SipuniAPI.selectLine(lineId, true);
+      // Update the line to set selected: true in Sipuni using selectLine method with PATCH
+      const response = await SipuniAPI.selectLine(campaignId, lineId, true);
 
-      console.log('[API /campaigns/select-line] Line selected:', response);
+      console.log('[API /campaigns/select-line] Full Sipuni response:', JSON.stringify(response, null, 2));
+      console.log('[API /campaigns/select-line] Response status code:', response?.statusCode);
+      console.log('[API /campaigns/select-line] Response success:', response?.success);
+      console.log('[API /campaigns/select-line] Selected field in data:', response?.data?.map((d: any) => ({ id: d.id, name: d.name, selected: d.selected })));
 
       return NextResponse.json({
         success: true,

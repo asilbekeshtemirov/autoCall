@@ -110,16 +110,19 @@ export class SipuniAPI {
   /**
    * Get available phone numbers/lines
    */
-  async getAvailableLines(): Promise<any[]> {
-    const response = await this.client.get(`/api/campaigns/lines`);
+  async getAvailableLines(campaignId?: string): Promise<any[]> {
+    const url = campaignId
+      ? `/api/campaigns/lines?campaignId=${campaignId}`
+      : `/api/campaigns/lines`;
+    const response = await this.client.get(url);
     return response.data.data || [];
   }
 
   /**
    * Select a phone number/line for campaign
    */
-  async selectPhoneNumber(lineId: string): Promise<any> {
-    const response = await this.client.put(`/api/campaigns/select-line`, { lineId });
+  async selectPhoneNumber(campaignId: string, lineId: string): Promise<any> {
+    const response = await this.client.put(`/api/campaigns/select-line`, { campaignId, lineId });
     return response.data.data;
   }
 

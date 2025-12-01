@@ -10,11 +10,15 @@ import { callSipuni } from '@/lib/sipuni-server';
 export async function GET(request: NextRequest) {
   return withAuth(request, async (user, req) => {
     try {
-      console.log('[API /campaigns/lines] Fetching available lines from Sipuni...');
+      const { searchParams } = new URL(request.url);
+      const campaignId = searchParams.get('campaignId');
+
+      console.log('[API /campaigns/lines] Fetching available lines for campaign:', campaignId);
 
       // Get available lines/numbers from Sipuni
       // This should return items like: [{id: 9881507, name: "mvp project", selected: false}, {id: 8404457, name: "998785555505", selected: true}]
-      const response = await callSipuni('/autocall-outline/', 'GET');
+      const endpoint = campaignId ? `/autocall-outline/?autocall=${campaignId}` : '/lines/';
+      const response = await callSipuni(endpoint, 'GET');
 
       console.log('[API /campaigns/lines] Sipuni response:', JSON.stringify(response, null, 2));
 
