@@ -32,7 +32,8 @@ export default function CampaignDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [allOperators, setAllOperators] = useState<any[]>([]);
   const [assignedOperators, setAssignedOperators] = useState<any[]>([]);
-  const [selectedOperator, setSelectedOperator] = useState('');
+  const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
+  const [selectedAssignedOperators, setSelectedAssignedOperators] = useState<string[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
   const [uploadedNumbers, setUploadedNumbers] = useState<any[]>([]);
@@ -219,21 +220,50 @@ export default function CampaignDetailPage() {
   };
 
   const handleAssignOperator = async () => {
-    if (!campaign || !selectedOperator) return;
+    if (!campaign || selectedOperators.length === 0) return;
     setIsAssigning(true);
     setAssignError(null);
     try {
       const api = getSipuniAPI();
-      const operatorId = parseInt(selectedOperator, 10);
-      await api.assignOperators(campaignId, [operatorId]);
-      setSelectedOperator('');
+      const operatorIds = selectedOperators.map(id => parseInt(id, 10));
+      await api.assignOperators(campaignId, operatorIds);
+      setSelectedOperators([]);
       // Reload assigned operators
       await loadOperatorsData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to assign operator';
+      const message = err instanceof Error ? err.message : 'Failed to assign operators';
       setAssignError(message);
     } finally {
       setIsAssigning(false);
+    }
+  };
+
+  const handleUnassignOperator = async (operatorId: string) => {
+    if (!campaign) return;
+    setAssignError(null);
+    try {
+      const api = getSipuniAPI();
+      await api.unassignOperator(campaignId, operatorId);
+      // Reload assigned operators
+      await loadOperatorsData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to unassign operator';
+      setAssignError(message);
+    }
+  };
+
+  const handleRemoveOperators = async () => {
+    if (!campaign || selectedAssignedOperators.length === 0) return;
+    setAssignError(null);
+    try {
+      const api = getSipuniAPI();
+      await api.unassignOperators(campaignId, selectedAssignedOperators);
+      setSelectedAssignedOperators([]);
+      // Reload assigned operators
+      await loadOperatorsData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to unassign operators';
+      setAssignError(message);
     }
   };
 
@@ -567,8 +597,9 @@ export default function CampaignDetailPage() {
                 <p className="text-sm text-gray-600 mb-3">Add operators to handle calls for this campaign</p>
                 <div className="flex gap-2">
                   <select
-                    value={selectedOperator}
-                    onChange={(e) => setSelectedOperator(e.target.value)}
+                    multiple
+                    value={selectedOperators}
+                    onChange={(e) => setSelectedOperators(Array.from(e.target.selectedOptions, option => option.value))}
                     className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
                     <option value="">Select an operator...</option>
@@ -582,33 +613,85 @@ export default function CampaignDetailPage() {
                   </select>
                   <button
                     onClick={handleAssignOperator}
-                    disabled={!selectedOperator || isAssigning}
+                    disabled={selectedOperators.length === 0 || isAssigning}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {isAssigning ? 'Assigning...' : 'Assign Operator'}
+                  </button>
+                  <button
+                    onClick={handleAssignAllOperators}
+                    disabled={allOperators.filter(op => !assignedOperators.some(assigned => assigned.id === op.id)).length === 0 || isAssigningAll}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {isAssigningAll ? 'Assigning All...' : 'Assign All'}
                   </button>
                 </div>
                 {assignError && <p className="text-red-600 text-sm mt-2">{assignError}</p>}
               </div>
 
               <div>
-                <h3 className="font-semibold mb-3">Assigned Operators</h3>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold">Assigned Operators</h3>
+                  {selectedAssignedOperators.length > 0 && (
+                    <button
+                      onClick={handleRemoveOperators}
+                      className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                    >
+                      Remove Selected Operators
+                    </button>
+                  )}
+                </div>
                 {assignedOperators && assignedOperators.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200 bg-gray-50">
+                          <th className="py-3 px-4">
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedAssignedOperators(assignedOperators.map(op => op.id));
+                                } else {
+                                  setSelectedAssignedOperators([]);
+                                }
+                              }}
+                            />
+                          </th>
                           <th className="text-left py-3 px-4 font-semibold">Operator Name</th>
                           <th className="text-left py-3 px-4 font-semibold">Operator ID</th>
                           <th className="text-left py-3 px-4 font-semibold">Login</th>
+                          <th className="text-left py-3 px-4 font-semibold">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {assignedOperators.map((op: any, idx: number) => (
                           <tr key={op.id || idx} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-3 px-4">
+                              <input
+                                type="checkbox"
+                                value={op.id}
+                                checked={selectedAssignedOperators.includes(op.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedAssignedOperators([...selectedAssignedOperators, op.id]);
+                                  } else {
+                                    setSelectedAssignedOperators(selectedAssignedOperators.filter(id => id !== op.id));
+                                  }
+                                }}
+                              />
+                            </td>
                             <td className="py-3 px-4">{op.name || op.login || 'N/A'}</td>
                             <td className="py-3 px-4 font-mono text-xs">{op.id}</td>
                             <td className="py-3 px-4">{op.login || 'N/A'}</td>
+                            <td className="py-3 px-4">
+                              <button
+                                onClick={() => handleUnassignOperator(op.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                Remove
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

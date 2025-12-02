@@ -6,7 +6,7 @@ async function unassignOperatorHandler(
   req: NextRequest,
   { params }: { params: { id: string; operatorId: string } }
 ) {
-  return withAuth(req, async (user, request) => {
+  return withAuth(req, async () => {
     try {
       const { id: campaignId, operatorId } = params;
 

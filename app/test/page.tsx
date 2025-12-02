@@ -66,8 +66,8 @@ export default function TestPage() {
       <div style={{ marginTop: '20px', color: '#666' }}>
         <h3>Instructions:</h3>
         <ol>
-          <li>Click "Test All Endpoints" button</li>
-          <li>Check the results to see which endpoint doesn't return 404</li>
+          <li>Click &quot;Test All Endpoints&quot; button</li>
+          <li>Check the results to see which endpoint doesn&apos;t return 404</li>
           <li>Report the working endpoint</li>
         </ol>
       </div>

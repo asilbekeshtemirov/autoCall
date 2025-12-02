@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getSipuniAPI } from '@/lib/sipuni-api';
 import type { SipuniCampaign, SipuniOperator } from '@/lib/sipuni-api';
 
@@ -29,9 +29,9 @@ export default function CampaignDetails({ campaignId, onClose }: CampaignDetails
 
   useEffect(() => {
     loadCampaignDetails();
-  }, [campaignId]);
+  }, [loadCampaignDetails]);
 
-  const loadCampaignDetails = async () => {
+  const loadCampaignDetails = useCallback(async () => {
     try {
       setError(null);
       setLoading(true);
@@ -53,7 +53,7 @@ export default function CampaignDetails({ campaignId, onClose }: CampaignDetails
     } finally {
       setLoading(false);
     }
-  };
+  }, [campaignId]);
 
   if (loading) {
     return (

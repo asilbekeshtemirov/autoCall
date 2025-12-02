@@ -19,7 +19,7 @@ interface RouteParams {
  * GET /api/campaigns/[id]/operators
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async () => {
     try {
       const { id } = params;
 
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * Assign operators to campaign
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async () => {
     try {
       const { id } = params;
       const body = await request.json();

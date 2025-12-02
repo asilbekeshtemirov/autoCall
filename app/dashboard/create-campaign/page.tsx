@@ -17,7 +17,7 @@ interface FormData {
   name: string;
   description: string;
   outLineId?: string;
-  operatorId?: string;
+  operatorIds: string[];
   cooldown?: number;
   maxConnections?: number;
   strategy?: number;
@@ -33,11 +33,11 @@ export default function CreateCampaignPage() {
     name: '',
     description: '',
     outLineId: '',
-    operatorId: '',
+    operatorIds: [],
     cooldown: 60,
     maxConnections: 1,
     strategy: 1,
-    type: 'default',
+    type: 'predict',
   });
 
   const [operators, setOperators] = useState<any[]>([]);
@@ -135,6 +135,18 @@ export default function CreateCampaignPage() {
       const result = await api.createCampaign(campaignData);
 
       console.log('[CreateCampaignPage] Campaign created:', result);
+
+      // Assign operators if any were selected
+      if (formData.operatorIds.length > 0 && result?.id) {
+        try {
+          console.log('[CreateCampaignPage] Assigning operators:', formData.operatorIds);
+          await api.assignOperators(String(result.id), formData.operatorIds.map(id => parseInt(id)));
+          console.log('[CreateCampaignPage] Operators assigned successfully');
+        } catch (opError) {
+          console.error('[CreateCampaignPage] Failed to assign operators:', opError);
+          // Don't fail the whole operation if operator assignment fails
+        }
+      }
 
       if (result && result.id) {
         router.push(`/dashboard/campaigns/${result.id}`);
@@ -238,28 +250,49 @@ export default function CreateCampaignPage() {
               />
             </div>
 
+
             {/* Operator Selection */}
             <div>
-              <label htmlFor="operatorId" className="block text-sm font-medium text-gray-700 mb-2">
-                Assign Operator
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assign Operators
               </label>
-              <select
-                id="operatorId"
-                name="operatorId"
-                value={formData.operatorId}
-                onChange={handleChange}
-                disabled={isSubmitting || operators.length === 0}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
-              >
-                <option value="">Select an operator...</option>
-                {operators.map((op) => (
-                  <option key={op.id} value={op.id}>
-                    {op.name || op.email || op.id}
-                  </option>
-                ))}
-              </select>
-              {operators.length === 0 && (
-                <p className="text-sm text-gray-500 mt-1">No operators available</p>
+              <div className="border border-gray-300 rounded-lg p-4 max-h-48 overflow-y-auto bg-white">
+                {operators.length === 0 ? (
+                  <p className="text-sm text-gray-500">No operators available</p>
+                ) : (
+                  <div className="space-y-2">
+                    {operators.map((op) => (
+                      <label
+                        key={op.id}
+                        className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.operatorIds.includes(String(op.id))}
+                          onChange={(e) => {
+                            const operatorId = String(op.id);
+                            setFormData((prev) => ({
+                              ...prev,
+                              operatorIds: e.target.checked
+                                ? [...prev.operatorIds, operatorId]
+                                : prev.operatorIds.filter((id) => id !== operatorId),
+                            }));
+                          }}
+                          disabled={isSubmitting}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">
+                          {op.name || op.email || op.id}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {formData.operatorIds.length > 0 && (
+                <p className="text-sm text-gray-600 mt-2">
+                  {formData.operatorIds.length} operator{formData.operatorIds.length !== 1 ? 's' : ''} selected
+                </p>
               )}
             </div>
 
@@ -337,6 +370,7 @@ export default function CreateCampaignPage() {
                   disabled={isSubmitting}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
+                  <option value="predict">Predict</option>
                   <option value="default">Default</option>
                   <option value="default2">Default 2</option>
                 </select>

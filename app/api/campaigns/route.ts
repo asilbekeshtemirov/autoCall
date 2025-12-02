@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         cooldown: body.cooldown ? parseInt(body.cooldown) : 60,
         strategy: body.strategy || 1,
         isRoboCall: body.isRoboCall || 0,
-        type: body.type || 'default',
+        type: body.type || 'predict',
         maxConnections: body.maxConnections ? parseInt(body.maxConnections) : 1,
         distributor: body.distributor || 0,
         defaultInTree: body.defaultInTree !== undefined ? body.defaultInTree : 1,

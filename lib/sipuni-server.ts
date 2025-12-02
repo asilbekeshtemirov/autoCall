@@ -235,6 +235,14 @@ export const SipuniAPI = {
   },
 
   /**
+   * Unassign operator from campaign
+   * Endpoint: DELETE /autocall-operator/{operatorId}/?autocall={campaignId}
+   */
+  unassignOperator: async (campaignId: string, operatorId: string) => {
+    return callSipuni(`/autocall-operator/${operatorId}/?autocall=${campaignId}`, 'DELETE');
+  },
+
+  /**
    * Get call results for campaign
    */
   getCallResults: async (id: string, max: number = 100, pos: number = 0) => {
