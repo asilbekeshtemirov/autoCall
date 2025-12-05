@@ -9,12 +9,7 @@ import Link from 'next/link';
 
 interface FormData {
   name: string;
-  description: string;
-  operatorIds: string[];  // Multi-select operators
-  cooldown?: number;
-  maxConnections?: number;
-  strategy?: number;
-  type?: string;
+  operatorIds: string[];
 }
 
 export default function CreateCampaignPage() {
@@ -24,12 +19,7 @@ export default function CreateCampaignPage() {
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
-    description: '',
     operatorIds: [],
-    cooldown: 60,
-    maxConnections: 1,
-    strategy: 1,
-    type: 'predict',
   });
 
   const [operators, setOperators] = useState<any[]>([]);
@@ -67,14 +57,6 @@ export default function CreateCampaignPage() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'number' ? (value === '' ? '' : parseInt(value, 10)) : value,
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -89,29 +71,29 @@ export default function CreateCampaignPage() {
     try {
       const api = getSipuniAPI();
 
-      // Prepare campaign data with ALL required fields matching Sipuni API
+      // Sipuni API uchun to'liq ma'lumotlar - Sipuni dashboard formatiga mos
       const campaignData = {
-        // Basic info
-        type: formData.type || 'predict',
+        // Asosiy ma'lumotlar
+        type: 'default2',
         workMode: 'default',
         name: formData.name.trim(),
         id: 0,
 
-        // Audio settings
+        // Audio sozlamalari
         file: null,
         fileName: null,
         audioId: null,
         audioName: '',
 
-        // Call settings
+        // Qo'ng'iroq sozlamalari
         autoAnswer: false,
         callAttemptTime: 30,
-        cooldown: String(formData.cooldown || 60),
-        maxConnections: formData.maxConnections || 1,
+        cooldown: '5',
+        maxConnections: 1,
         minDuration: '20',
-        predictCoef: '4',
+        predictCoef: 1,
 
-        // Schedule - days of week (all disabled by default)
+        // Hafta kunlari (barchasi o'chirilgan)
         day_0: false,
         day_1: false,
         day_2: false,
@@ -120,14 +102,14 @@ export default function CreateCampaignPage() {
         day_5: false,
         day_6: false,
 
-        // Time settings
+        // Vaqt sozlamalari
         timeStart: null,
         timeEnd: null,
-        timeMin: '06:00',
-        timeMax: '22:00',
-        timezone: 'Asia/Tashkent',
+        timeMin: '',
+        timeMax: '',
+        timezone: 'Europe/Moscow',
 
-        // Other settings
+        // Boshqa sozlamalar
         defaultInTree: false,
         distributor: false,
         inTree: '',
@@ -143,10 +125,10 @@ export default function CreateCampaignPage() {
 
       console.log('[CreateCampaignPage] Campaign created:', result);
 
-      // Get campaign ID from nested response: result.data.autocall.id
+      // Campaign ID ni olish: result.data.autocall.id
       const campaignId = result?.data?.autocall?.id || result?.autocall?.id || result?.id;
 
-      // Assign operators if any were selected
+      // Operatorlarni biriktirish
       if (formData.operatorIds.length > 0 && campaignId) {
         try {
           console.log('[CreateCampaignPage] Assigning operators:', formData.operatorIds);
@@ -154,7 +136,6 @@ export default function CreateCampaignPage() {
           console.log('[CreateCampaignPage] Operators assigned successfully');
         } catch (opError) {
           console.error('[CreateCampaignPage] Failed to assign operators:', opError);
-          // Don't fail the whole operation if operator assignment fails
         }
       }
 
@@ -235,7 +216,7 @@ export default function CreateCampaignPage() {
                 type="text"
                 name="name"
                 value={formData.name}
-                onChange={handleChange}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Summer Promotion 2024"
                 disabled={isSubmitting}
                 required
@@ -243,29 +224,12 @@ export default function CreateCampaignPage() {
               />
             </div>
 
-            {/* Description */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Describe the purpose and details of this campaign"
-                disabled={isSubmitting}
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
-              />
-            </div>
-
-            {/* Operator Selection - Multi-select with checkboxes */}
+            {/* Operator Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assign Operators (Optional)
+                Assign Operators <span className="text-red-600">*</span>
               </label>
-              <div className="border border-gray-300 rounded-lg p-4 max-h-48 overflow-y-auto bg-white">
+              <div className="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto bg-white">
                 {operators.length === 0 ? (
                   <p className="text-sm text-gray-500">No operators available</p>
                 ) : (
@@ -299,79 +263,20 @@ export default function CreateCampaignPage() {
                 )}
               </div>
               {formData.operatorIds.length > 0 && (
-                <p className="text-sm text-gray-600 mt-2">
-                  {formData.operatorIds.length} operator{formData.operatorIds.length !== 1 ? 's' : ''} selected
+                <p className="text-sm text-green-600 mt-2 font-medium">
+                  ✓ {formData.operatorIds.length} operator{formData.operatorIds.length !== 1 ? 's' : ''} selected
                 </p>
               )}
             </div>
 
-
-
-            {/* Campaign Settings */}
-            <div className="grid grid-cols-3 gap-6">
-              {/* Cooldown */}
-              <div>
-                <label htmlFor="cooldown" className="block text-sm font-medium text-gray-700 mb-2">
-                  Cooldown (seconds)
-                </label>
-                <input
-                  id="cooldown"
-                  type="number"
-                  name="cooldown"
-                  value={formData.cooldown}
-                  onChange={handleChange}
-                  min="0"
-                  disabled={isSubmitting}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              {/* Max Connections */}
-              <div>
-                <label htmlFor="maxConnections" className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Connections
-                </label>
-                <input
-                  id="maxConnections"
-                  type="number"
-                  name="maxConnections"
-                  value={formData.maxConnections}
-                  onChange={handleChange}
-                  min="1"
-                  disabled={isSubmitting}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              {/* Campaign Type */}
-              <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
-                  Campaign Type
-                </label>
-                <select
-                  id="type"
-                  name="type"
-                  value={formData.type}
-                  onChange={handleChange as any}
-                  disabled={isSubmitting}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="predict">Predict</option>
-                  <option value="default">Default</option>
-                  <option value="default2">Default 2</option>
-                </select>
-              </div>
-            </div>
-
             {/* Info Box */}
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">📋 Campaign Setup:</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">📋 Next Steps:</h3>
               <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                <li>Fill in campaign details</li>
-                <li>Optionally assign operators now or later</li>
+                <li>Enter campaign name and select operators</li>
                 <li>Select phone line from campaign details page</li>
                 <li>Upload phone numbers to call</li>
-                <li>Review settings and start the campaign</li>
+                <li>Start the campaign</li>
               </ol>
             </div>
 
