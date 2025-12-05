@@ -1,6 +1,6 @@
 /**
  * PUT /api/campaigns/select-line - Select a phone number/line for campaign
- * Updates the campaign's outLineId to assign the line
+ * Uses Sipuni's /autocall-outline/ endpoint with PATCH method
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,24 +20,16 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      console.log('[API /campaigns/select-line] Assigning line:', lineId, 'to campaign:', campaignId);
+      console.log('[API /campaigns/select-line] Selecting line:', lineId, 'for campaign:', campaignId);
 
-      // Update campaign with the selected line ID
-      // This actually assigns the line to the campaign (not just marking it selected)
-      const updateData = {
-        outLineId: parseInt(lineId, 10)
-      };
+      // Use the SipuniAPI.selectLine method which uses PATCH /autocall-outline/
+      const response = await SipuniAPI.selectLine(campaignId, lineId, true);
 
-      console.log('[API /campaigns/select-line] Updating campaign with:', updateData);
-
-      const response = await SipuniAPI.updateCampaign(campaignId, updateData);
-
-      console.log('[API /campaigns/select-line] Campaign updated:', JSON.stringify(response, null, 2));
-      console.log('[API /campaigns/select-line] Response success:', response?.success);
+      console.log('[API /campaigns/select-line] Response:', JSON.stringify(response, null, 2));
 
       return NextResponse.json({
         success: true,
-        message: 'Phone line assigned to campaign',
+        message: 'Phone line selected for campaign',
         data: response,
       });
     } catch (error: any) {
@@ -48,7 +40,7 @@ export async function PUT(request: NextRequest) {
         status: error.response?.status,
       });
       return NextResponse.json(
-        { error: error.message || 'Failed to assign phone line' },
+        { error: error.message || 'Failed to select phone line' },
         { status: 500 }
       );
     }
