@@ -71,29 +71,19 @@ export default function CreateCampaignPage() {
     try {
       const api = getSipuniAPI();
 
-      // Sipuni API uchun to'liq ma'lumotlar - Sipuni dashboard formatiga mos
+      // Aynan Sipuni dashboard yuborgan format
       const campaignData = {
-        // Asosiy ma'lumotlar
         type: 'default2',
         workMode: 'default',
-        name: formData.name.trim(),
-        id: 0,
-
-        // Audio sozlamalari
         file: null,
         fileName: null,
+        id: 0,
+        name: formData.name.trim(),
+        cooldown: '5',
         audioId: null,
         audioName: '',
-
-        // Qo'ng'iroq sozlamalari
         autoAnswer: false,
         callAttemptTime: 30,
-        cooldown: '5',
-        maxConnections: 1,
-        minDuration: '20',
-        predictCoef: 1,
-
-        // Hafta kunlari (barchasi o'chirilgan)
         day_0: false,
         day_1: false,
         day_2: false,
@@ -101,23 +91,22 @@ export default function CreateCampaignPage() {
         day_4: false,
         day_5: false,
         day_6: false,
-
-        // Vaqt sozlamalari
-        timeStart: null,
-        timeEnd: null,
-        timeMin: '',
-        timeMax: '',
-        timezone: 'Europe/Moscow',
-
-        // Boshqa sozlamalar
         defaultInTree: false,
         distributor: false,
         inTree: '',
         lines: '',
+        maxConnections: 1,
+        minDuration: '20',
+        predictCoef: 1,
         priority: '',
         recallMissed: '',
         recallMissedTimeout: '',
         statUrl: '',
+        timeEnd: null,
+        timeMax: '',
+        timeMin: '',
+        timeStart: null,
+        timezone: 'Europe/Moscow',
       };
 
       console.log('[CreateCampaignPage] Submitting campaign data:', campaignData);
