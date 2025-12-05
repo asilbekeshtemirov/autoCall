@@ -89,14 +89,42 @@ export default function CreateCampaignPage() {
     try {
       const api = getSipuniAPI();
 
-      // Prepare campaign data with basic settings
+      // Prepare campaign data matching Sipuni dashboard format exactly
       const campaignData = {
-        name: formData.name,
-        description: formData.description,
-        cooldown: formData.cooldown || 60,
-        maxConnections: formData.maxConnections || 1,
-        strategy: formData.strategy || 1,
         type: formData.type || 'predict',
+        workMode: 'default',
+        file: null,
+        fileName: null,
+        id: 0,
+        name: formData.name,
+        cooldown: String(formData.cooldown || 60),
+        maxConnections: formData.maxConnections || 1,
+        minDuration: '20',
+        callAttemptTime: 30,
+        timeMin: '06:00',
+        timeMax: '22:00',
+        timezone: 'Asia/Tashkent',
+        predictCoef: '4',
+        autoAnswer: false,
+        defaultInTree: false,
+        distributor: false,
+        audioId: null,
+        audioName: '',
+        inTree: '',
+        lines: '',
+        priority: '',
+        recallMissed: '',
+        recallMissedTimeout: '',
+        statUrl: '',
+        timeEnd: null,
+        timeStart: null,
+        day_0: false,
+        day_1: false,
+        day_2: false,
+        day_3: false,
+        day_4: false,
+        day_5: false,
+        day_6: false,
       };
 
       console.log('[CreateCampaignPage] Submitting campaign data:', campaignData);
@@ -104,11 +132,14 @@ export default function CreateCampaignPage() {
 
       console.log('[CreateCampaignPage] Campaign created:', result);
 
+      // Extract campaign ID from Sipuni response (data.autocall.id)
+      const campaignId = result?.data?.autocall?.id || result?.autocall?.id || result?.id;
+
       // Assign operators if any were selected
-      if (formData.operatorIds.length > 0 && result?.id) {
+      if (formData.operatorIds.length > 0 && campaignId) {
         try {
           console.log('[CreateCampaignPage] Assigning operators:', formData.operatorIds);
-          await api.assignOperators(String(result.id), formData.operatorIds.map(id => parseInt(id)));
+          await api.assignOperators(String(campaignId), formData.operatorIds.map(id => parseInt(id)));
           console.log('[CreateCampaignPage] Operators assigned successfully');
         } catch (opError) {
           console.error('[CreateCampaignPage] Failed to assign operators:', opError);
@@ -116,8 +147,8 @@ export default function CreateCampaignPage() {
         }
       }
 
-      if (result && result.id) {
-        router.push(`/dashboard/campaigns/${result.id}`);
+      if (campaignId) {
+        router.push(`/dashboard/campaigns/${campaignId}`);
       } else {
         router.push('/dashboard');
       }

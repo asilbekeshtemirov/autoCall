@@ -837,9 +837,12 @@ export default function CampaignDetailPage() {
                         alert('No missed calls to export');
                         return;
                       }
-                      // Export only phone numbers
                       const exportData = missedCalls.map((call: any) => ({
-                        'Phone Number': call.phoneNumber
+                        'Phone Number': call.phoneNumber,
+                        'Status': call.status,
+                        'Duration (sec)': call.duration,
+                        'Time': call.timestamp,
+                        'Operator': call.operator || 'N/A'
                       }));
                       const ws = XLSX.utils.json_to_sheet(exportData);
                       const wb = XLSX.utils.book_new();

@@ -76,63 +76,20 @@ export async function POST(request: NextRequest) {
       console.log('[API /campaigns POST] Received campaign data:', body);
 
       // Map frontend payload to Sipuni API payload structure
-      // Exact format from Sipuni dashboard
+      // Based on working curl: https://apilk.sipuni.com/api/ver2/autocall/
       const sipuniPayload = {
-        // Required fields
-        type: body.type || 'predict',
-        workMode: body.workMode || 'default',
         name: body.name || '',
-
-        // Core settings
-        cooldown: String(body.cooldown || 60),
-        maxConnections: body.maxConnections || 1,
-        minDuration: String(body.minDuration || 20),
-        callAttemptTime: body.callAttemptTime || 30,
-
-        // Time settings
-        timeMin: body.timeMin || '06:00',
-        timeMax: body.timeMax || '22:00',
-        timezone: body.timezone || 'Asia/Tashkent',
-
-        // Optional settings with defaults
-        predictCoef: String(body.predictCoef || 4),
-        priority: body.priority || '',
-        statUrl: body.statUrl || '',
-
-        // Audio settings
-        audioId: body.audioId || null,
-        audioName: body.audioName || '',
-        autoAnswer: body.autoAnswer || false,
-
-        // Tree settings
-        inTree: body.inTree || '',
-        defaultInTree: body.defaultInTree || false,
-        distributor: body.distributor || false,
-
-        // Phone lines
-        lines: body.lines || '',
-
-        // Recall settings
-        recallMissed: body.recallMissed || '',
-        recallMissedTimeout: body.recallMissedTimeout || '',
-
-        // Schedule - all days off by default
-        day_0: body.day_0 || false,
-        day_1: body.day_1 || false,
-        day_2: body.day_2 || false,
-        day_3: body.day_3 || false,
-        day_4: body.day_4 || false,
-        day_5: body.day_5 || false,
-        day_6: body.day_6 || false,
-
-        // Time schedule
-        timeStart: body.timeStart || null,
-        timeEnd: body.timeEnd || null,
-
-        // File upload (not used)
-        file: null,
-        fileName: null,
-        id: 0,
+        description: body.description || '',
+        cooldown: body.cooldown ? parseInt(body.cooldown) : 60,
+        strategy: body.strategy || 1,
+        isRoboCall: body.isRoboCall || 0,
+        type: body.type || 'predict',
+        maxConnections: body.maxConnections ? parseInt(body.maxConnections) : 1,
+        distributor: body.distributor || 0,
+        defaultInTree: body.defaultInTree !== undefined ? body.defaultInTree : 1,
+        outLineId: body.outLineId ? parseInt(body.outLineId) : 0,
+        treeId: body.treeId || 0,
+        userId: body.userId || 0,
       };
 
       console.log('[API /campaigns POST] Mapped to Sipuni payload:', sipuniPayload);
