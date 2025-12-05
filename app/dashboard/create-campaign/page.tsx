@@ -89,35 +89,29 @@ export default function CreateCampaignPage() {
     try {
       const api = getSipuniAPI();
 
-      // Prepare campaign data matching Sipuni dashboard format exactly
+      // Prepare campaign data with ALL required fields matching Sipuni API
       const campaignData = {
+        // Basic info
         type: formData.type || 'predict',
         workMode: 'default',
+        name: formData.name.trim(),
+        id: 0,
+
+        // Audio settings
         file: null,
         fileName: null,
-        id: 0,
-        name: formData.name,
+        audioId: null,
+        audioName: '',
+
+        // Call settings
+        autoAnswer: false,
+        callAttemptTime: 30,
         cooldown: String(formData.cooldown || 60),
         maxConnections: formData.maxConnections || 1,
         minDuration: '20',
-        callAttemptTime: 30,
-        timeMin: '06:00',
-        timeMax: '22:00',
-        timezone: 'Asia/Tashkent',
         predictCoef: '4',
-        autoAnswer: false,
-        defaultInTree: false,
-        distributor: false,
-        audioId: null,
-        audioName: '',
-        inTree: '',
-        lines: '',
-        priority: '',
-        recallMissed: '',
-        recallMissedTimeout: '',
-        statUrl: '',
-        timeEnd: null,
-        timeStart: null,
+
+        // Schedule - days of week (all disabled by default)
         day_0: false,
         day_1: false,
         day_2: false,
@@ -125,6 +119,23 @@ export default function CreateCampaignPage() {
         day_4: false,
         day_5: false,
         day_6: false,
+
+        // Time settings
+        timeStart: null,
+        timeEnd: null,
+        timeMin: '06:00',
+        timeMax: '22:00',
+        timezone: 'Asia/Tashkent',
+
+        // Other settings
+        defaultInTree: false,
+        distributor: false,
+        inTree: '',
+        lines: '',
+        priority: '',
+        recallMissed: '',
+        recallMissedTimeout: '',
+        statUrl: '',
       };
 
       console.log('[CreateCampaignPage] Submitting campaign data:', campaignData);
@@ -132,7 +143,7 @@ export default function CreateCampaignPage() {
 
       console.log('[CreateCampaignPage] Campaign created:', result);
 
-      // Extract campaign ID from Sipuni response (data.autocall.id)
+      // Get campaign ID from nested response: result.data.autocall.id
       const campaignId = result?.data?.autocall?.id || result?.autocall?.id || result?.id;
 
       // Assign operators if any were selected
