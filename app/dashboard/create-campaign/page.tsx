@@ -11,7 +11,6 @@ interface FormData {
   name: string;
   description: string;
   operatorIds: string[];  // Multi-select operators
-  outLineId: string;  // Phone line (required for campaign)
   cooldown?: number;
   maxConnections?: number;
   strategy?: number;
@@ -27,7 +26,6 @@ export default function CreateCampaignPage() {
     name: '',
     description: '',
     operatorIds: [],
-    outLineId: '',
     cooldown: 60,
     maxConnections: 1,
     strategy: 1,
@@ -35,7 +33,6 @@ export default function CreateCampaignPage() {
   });
 
   const [operators, setOperators] = useState<any[]>([]);
-  const [lines, setLines] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +40,6 @@ export default function CreateCampaignPage() {
   useEffect(() => {
     if (!authLoading) {
       loadOperators();
-      loadPhoneLines();
     }
   }, [authLoading]);
 
@@ -71,28 +67,6 @@ export default function CreateCampaignPage() {
     }
   };
 
-  const loadPhoneLines = async () => {
-    try {
-      const api = getSipuniAPI();
-      console.log('[CreateCampaignPage] Loading phone lines...');
-
-      const linesData = await api.getAvailableLines().catch((err) => {
-        console.warn('[CreateCampaignPage] Failed to fetch lines:', err);
-        return [];
-      });
-
-      console.log('[CreateCampaignPage] Lines Data:', linesData);
-      setLines(Array.isArray(linesData) ? linesData : []);
-
-      // Auto-select first available line if any
-      if (Array.isArray(linesData) && linesData.length > 0) {
-        setFormData(prev => ({ ...prev, outLineId: String(linesData[0].id) }));
-      }
-    } catch (err) {
-      console.error('[CreateCampaignPage] Error loading lines:', err);
-    }
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -110,11 +84,6 @@ export default function CreateCampaignPage() {
       return;
     }
 
-    if (!formData.outLineId) {
-      setError('Phone line is required');
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -124,7 +93,6 @@ export default function CreateCampaignPage() {
       const campaignData = {
         name: formData.name,
         description: formData.description,
-        outLineId: parseInt(formData.outLineId, 10),
         cooldown: formData.cooldown || 60,
         maxConnections: formData.maxConnections || 1,
         strategy: formData.strategy || 1,
@@ -295,31 +263,6 @@ export default function CreateCampaignPage() {
               )}
             </div>
 
-            {/* Phone Line Selection */}
-            <div>
-              <label htmlFor="outLineId" className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Line <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="outLineId"
-                name="outLineId"
-                value={formData.outLineId}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
-                required
-              >
-                <option value="">Select a phone line...</option>
-                {lines.map((line) => (
-                  <option key={line.id} value={line.id}>
-                    {line.name || line.id}
-                  </option>
-                ))}
-              </select>
-              {lines.length === 0 && (
-                <p className="text-sm text-gray-500 mt-2">No phone lines available</p>
-              )}
-            </div>
 
 
             {/* Campaign Settings */}
@@ -382,9 +325,10 @@ export default function CreateCampaignPage() {
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h3 className="font-semibold text-blue-900 mb-2">📋 Campaign Setup:</h3>
               <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                <li>Fill in campaign details and select phone line</li>
+                <li>Fill in campaign details</li>
                 <li>Optionally assign operators now or later</li>
-                <li>Upload phone numbers to call after creation</li>
+                <li>Select phone line from campaign details page</li>
+                <li>Upload phone numbers to call</li>
                 <li>Review settings and start the campaign</li>
               </ol>
             </div>
