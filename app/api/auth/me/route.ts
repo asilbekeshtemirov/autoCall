@@ -8,6 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, findUserById, getSafeUser } from '@/lib/models/user';
 
+// Force dynamic rendering - this route uses request headers
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Get token from Authorization header

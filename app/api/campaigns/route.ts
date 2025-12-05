@@ -10,6 +10,9 @@ import { withAuth } from '@/lib/auth-middleware';
 import { SipuniAPI } from '@/lib/sipuni-server';
 import { formatCampaign, formatCampaignList } from '@/lib/response-formatter';
 
+// Force dynamic rendering - this route uses auth headers
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/campaigns?max=50&pos=0
  */
