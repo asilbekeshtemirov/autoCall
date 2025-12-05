@@ -1,12 +1,6 @@
 'use client';
 
-'use client';
-
-'use client';
-
-'use client';
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useProtected } from '@/lib/use-protected';
@@ -16,8 +10,6 @@ import Link from 'next/link';
 interface FormData {
   name: string;
   description: string;
-  outLineId?: string;
-  operatorIds: string[];
   cooldown?: number;
   maxConnections?: number;
   strategy?: number;
@@ -32,66 +24,14 @@ export default function CreateCampaignPage() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
-    outLineId: '',
-    operatorIds: [],
     cooldown: 60,
     maxConnections: 1,
     strategy: 1,
     type: 'predict',
   });
 
-  const [operators, setOperators] = useState<any[]>([]);
-  const [lines, setLines] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!authLoading) {
-      loadOperatorsAndLines();
-    }
-  }, [authLoading]);
-
-  const loadOperatorsAndLines = async () => {
-    try {
-      setError(null);
-      const api = getSipuniAPI();
-
-      console.log('[CreateCampaignPage] Loading operators and phone lines...');
-
-      // Try to fetch from API first
-      let linesData = [];
-      try {
-        linesData = await api.getPhoneLines();
-        console.log('[CreateCampaignPage] Phone lines fetched from API:', linesData);
-      } catch (err) {
-        console.warn('[CreateCampaignPage] Failed to fetch phone lines from API, using defaults:', err);
-        // Fallback: Use hardcoded phone lines (from your Sipuni account)
-        linesData = [
-          { id: 9881507, name: 'mvp project', selected: false },
-          { id: 8404457, name: '998785555505', selected: true },
-        ];
-      }
-
-      const operatorsData = await api.getEmployees().catch((err) => {
-        console.warn('[CreateCampaignPage] Failed to fetch operators:', err);
-        return [];
-      });
-
-      console.log('[CreateCampaignPage] Operators Data:', operatorsData);
-      console.log('[CreateCampaignPage] Phone Lines Data:', linesData);
-      console.log('[CreateCampaignPage] Phone Lines length:', linesData?.length || 0);
-
-      setOperators(Array.isArray(operatorsData) ? operatorsData : []);
-      setLines(Array.isArray(linesData) ? linesData : []);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load operators and lines';
-      console.error('[CreateCampaignPage] Error loading data:', message, err);
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -110,25 +50,19 @@ export default function CreateCampaignPage() {
       return;
     }
 
-    if (!formData.outLineId) {
-      setError('Please select a phone line for the campaign');
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
       const api = getSipuniAPI();
 
-      // Prepare campaign data with all required fields
+      // Prepare campaign data with basic settings
       const campaignData = {
         name: formData.name,
         description: formData.description,
-        outLineId: parseInt(formData.outLineId),
         cooldown: formData.cooldown || 60,
         maxConnections: formData.maxConnections || 1,
         strategy: formData.strategy || 1,
-        type: formData.type || 'default',
+        type: formData.type || 'predict',
       };
 
       console.log('[CreateCampaignPage] Submitting campaign data:', campaignData);
@@ -136,15 +70,35 @@ export default function CreateCampaignPage() {
 
       console.log('[CreateCampaignPage] Campaign created:', result);
 
-      // Assign operators if any were selected
-      if (formData.operatorIds.length > 0 && result?.id) {
+      // Auto-select phone line after campaign creation
+      if (result && result.id) {
         try {
-          console.log('[CreateCampaignPage] Assigning operators:', formData.operatorIds);
-          await api.assignOperators(String(result.id), formData.operatorIds.map(id => parseInt(id)));
-          console.log('[CreateCampaignPage] Operators assigned successfully');
-        } catch (opError) {
-          console.error('[CreateCampaignPage] Failed to assign operators:', opError);
-          // Don't fail the whole operation if operator assignment fails
+          console.log('[CreateCampaignPage] Fetching available phone lines for campaign:', result.id);
+
+          // Fetch available lines for this campaign
+          const linesResponse = await api.getAvailableLines(String(result.id));
+          console.log('[CreateCampaignPage] Available lines:', linesResponse);
+
+          // Find the line marked as selected: true (default line)
+          const defaultLine = linesResponse.find((line: any) => line.selected === true);
+
+          if (defaultLine) {
+            console.log('[CreateCampaignPage] Auto-selecting default line:', defaultLine.id, defaultLine.name);
+
+            // Select this line for the campaign
+            await api.selectPhoneNumber(String(result.id), String(defaultLine.id));
+
+            console.log('[CreateCampaignPage] Phone line selected successfully');
+          } else if (linesResponse.length > 0) {
+            // If no default, select the first available line
+            console.log('[CreateCampaignPage] No default line, selecting first available:', linesResponse[0].id);
+            await api.selectPhoneNumber(String(result.id), String(linesResponse[0].id));
+          } else {
+            console.warn('[CreateCampaignPage] No phone lines available for selection');
+          }
+        } catch (lineError) {
+          console.error('[CreateCampaignPage] Failed to select phone line:', lineError);
+          // Don't fail the whole operation if line selection fails
         }
       }
 
@@ -165,7 +119,7 @@ export default function CreateCampaignPage() {
     window.location.href = '/login';
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -251,76 +205,6 @@ export default function CreateCampaignPage() {
             </div>
 
 
-            {/* Operator Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assign Operators
-              </label>
-              <div className="border border-gray-300 rounded-lg p-4 max-h-48 overflow-y-auto bg-white">
-                {operators.length === 0 ? (
-                  <p className="text-sm text-gray-500">No operators available</p>
-                ) : (
-                  <div className="space-y-2">
-                    {operators.map((op) => (
-                      <label
-                        key={op.id}
-                        className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.operatorIds.includes(String(op.id))}
-                          onChange={(e) => {
-                            const operatorId = String(op.id);
-                            setFormData((prev) => ({
-                              ...prev,
-                              operatorIds: e.target.checked
-                                ? [...prev.operatorIds, operatorId]
-                                : prev.operatorIds.filter((id) => id !== operatorId),
-                            }));
-                          }}
-                          disabled={isSubmitting}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">
-                          {op.name || op.email || op.id}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {formData.operatorIds.length > 0 && (
-                <p className="text-sm text-gray-600 mt-2">
-                  {formData.operatorIds.length} operator{formData.operatorIds.length !== 1 ? 's' : ''} selected
-                </p>
-              )}
-            </div>
-
-            {/* Line Selection */}
-            <div>
-              <label htmlFor="outLineId" className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Line <span className="text-red-600">*</span>
-              </label>
-              <select
-                id="outLineId"
-                name="outLineId"
-                value={formData.outLineId}
-                onChange={handleChange}
-                disabled={isSubmitting || lines.length === 0}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
-              >
-                <option value="">Select a phone line...</option>
-                {lines.map((line) => (
-                  <option key={line.id} value={line.id}>
-                    {line.name || line.number || line.id}
-                  </option>
-                ))}
-              </select>
-              {lines.length === 0 && (
-                <p className="text-sm text-gray-500 mt-1">No lines available</p>
-              )}
-            </div>
-
             {/* Campaign Settings */}
             <div className="grid grid-cols-3 gap-6">
               {/* Cooldown */}
@@ -379,12 +263,12 @@ export default function CreateCampaignPage() {
 
             {/* Info Box */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">Campaign Setup Steps:</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">Next Steps After Creation:</h3>
               <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                <li>Create the campaign with basic settings</li>
-                <li>Upload phone numbers to the campaign</li>
-                <li>Assign additional operators if needed</li>
-                <li>Review and start the campaign</li>
+                <li>Assign phone line for the campaign</li>
+                <li>Upload phone numbers to call</li>
+                <li>Assign operators to handle calls</li>
+                <li>Review settings and start the campaign</li>
               </ol>
             </div>
 
