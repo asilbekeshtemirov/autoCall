@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useProtected } from '@/lib/use-protected';
 import { getSipuniAPI } from '@/lib/sipuni-api';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 
 export default function UploadNumbersPage() {
   const params = useParams();
@@ -67,12 +68,36 @@ export default function UploadNumbersPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setNumbers(content);
-    };
-    reader.readAsText(file);
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+    if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+      // Handle Excel files
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+        // Extract phone numbers from first column
+        const phoneNumbers = jsonData
+          .map(row => String(row[0] || ''))
+          .filter(num => num.trim().length > 0)
+          .join('\n');
+
+        setNumbers(phoneNumbers);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      // Handle text/csv files
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        setNumbers(content);
+      };
+      reader.readAsText(file);
+    }
   };
 
   const handleLogout = () => {
@@ -146,11 +171,10 @@ export default function UploadNumbersPage() {
                     setUploadMethod(method as 'paste' | 'file');
                     setNumbers('');
                   }}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition ${
-                    uploadMethod === method
+                  className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition ${uploadMethod === method
                       ? 'border-blue-600 text-blue-600'
                       : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   {method === 'paste' ? 'Paste Numbers' : 'Upload File'}
                 </button>
@@ -180,13 +204,13 @@ export default function UploadNumbersPage() {
             ) : (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Upload File (.txt or .csv)
+                  Upload File (.txt, .csv, or .xlsx)
                 </label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition cursor-pointer">
                   <input
                     type="file"
                     onChange={handleFileUpload}
-                    accept=".txt,.csv"
+                    accept=".txt,.csv,.xlsx,.xls"
                     disabled={isUploading}
                     className="hidden"
                     id="file-input"
