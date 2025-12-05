@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useProtected } from '@/lib/use-protected';
 import { getSipuniAPI } from '@/lib/sipuni-api';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 
 interface CampaignDetail {
   id: string;
@@ -827,12 +828,42 @@ export default function CampaignDetailPage() {
                   <h3 className="font-semibold text-lg">Call Results Summary</h3>
                   <p className="text-sm text-gray-600">Detailed statistics of all calls made</p>
                 </div>
-                <button
-                  onClick={loadCallResults}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm"
-                >
-                  Refresh
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!callResults?.calls) return;
+                      const missedCalls = callResults.calls.filter((call: any) => call.status === 'missed');
+                      if (missedCalls.length === 0) {
+                        alert('No missed calls to export');
+                        return;
+                      }
+                      const exportData = missedCalls.map((call: any) => ({
+                        'Phone Number': call.phoneNumber,
+                        'Status': call.status,
+                        'Duration (sec)': call.duration,
+                        'Time': call.timestamp,
+                        'Operator': call.operator || 'N/A'
+                      }));
+                      const ws = XLSX.utils.json_to_sheet(exportData);
+                      const wb = XLSX.utils.book_new();
+                      XLSX.utils.book_append_sheet(wb, ws, 'Missed Calls');
+                      XLSX.writeFile(wb, `missed_calls_${campaign?.name || campaignId}_${new Date().toISOString().split('T')[0]}.xlsx`);
+                    }}
+                    disabled={!callResults?.calls || callResults.calls.filter((c: any) => c.status === 'missed').length === 0}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export Missed ({callResults?.calls?.filter((c: any) => c.status === 'missed').length || 0})
+                  </button>
+                  <button
+                    onClick={loadCallResults}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm"
+                  >
+                    Refresh
+                  </button>
+                </div>
               </div>
 
               {callResults && Object.keys(callResults).length > 0 ? (
