@@ -166,14 +166,15 @@ export const SipuniAPI = {
 
   /**
    * Select/Mark line as selected in campaign
-   * PATCH to /autocall-outline/ with NO query parameters (like Sipuni dashboard does)
-   * Body: { autocall: campaignId, id: lineId, selected: true }
+   * PATCH to /autocall-outline/
+   * Body: { line: [lineId], autocall: campaignId } - matches Sipuni dashboard exactly
    */
-  selectLine: async (campaignId: string, lineId: string, selected: boolean = true) => {
+  selectLine: async (campaignId: string, lineId: string) => {
     const lineIdInt = parseInt(lineId, 10);
     const campaignIdInt = parseInt(campaignId, 10);
     const endpoint = `/autocall-outline/`;
-    const body = { autocall: campaignIdInt, id: lineIdInt, selected };
+    // Exact format from Sipuni dashboard: line as array, autocall as number
+    const body = { line: [lineIdInt], autocall: campaignIdInt };
     console.log('[SipuniAPI.selectLine] PATCH /autocall-outline/ endpoint:', endpoint);
     console.log('[SipuniAPI.selectLine] PATCH body:', JSON.stringify(body));
     const response = await callSipuni(endpoint, 'PATCH', body);

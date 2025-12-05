@@ -23,7 +23,7 @@ export async function PUT(request: NextRequest) {
       console.log('[API /campaigns/select-line] Selecting line:', lineId, 'for campaign:', campaignId);
 
       // Use the SipuniAPI.selectLine method which uses PATCH /autocall-outline/
-      const response = await SipuniAPI.selectLine(campaignId, lineId, true);
+      const response = await SipuniAPI.selectLine(campaignId, lineId);
 
       console.log('[API /campaigns/select-line] Response:', JSON.stringify(response, null, 2));
 
