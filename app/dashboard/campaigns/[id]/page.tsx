@@ -35,6 +35,7 @@ export default function CampaignDetailPage() {
   const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
   const [selectedAssignedOperators, setSelectedAssignedOperators] = useState<string[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [isAssigningAll, setIsAssigningAll] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
   const [uploadedNumbers, setUploadedNumbers] = useState<any[]>([]);
   const [callResults, setCallResults] = useState<any[]>([]);
@@ -267,6 +268,31 @@ export default function CampaignDetailPage() {
     }
   };
 
+  const handleAssignAllOperators = async () => {
+    if (!campaign) return;
+
+    const unassignedOperators = allOperators.filter(
+      op => !assignedOperators.some(assigned => assigned.id === op.id)
+    );
+
+    if (unassignedOperators.length === 0) return;
+
+    setIsAssigningAll(true);
+    setAssignError(null);
+    try {
+      const api = getSipuniAPI();
+      const operatorIds = unassignedOperators.map(op => parseInt(op.id, 10));
+      await api.assignOperators(campaignId, operatorIds);
+      // Reload assigned operators
+      await loadOperatorsData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to assign all operators';
+      setAssignError(message);
+    } finally {
+      setIsAssigningAll(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     window.location.href = '/login';
@@ -346,13 +372,12 @@ export default function CampaignDetailPage() {
               <p className="text-gray-600 mt-1">{campaign.description || 'No description provided'}</p>
             </div>
             <span
-              className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${
-                campaign.status === 'active'
-                  ? 'bg-green-100 text-green-800'
-                  : campaign.status === 'paused'
+              className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${campaign.status === 'active'
+                ? 'bg-green-100 text-green-800'
+                : campaign.status === 'paused'
                   ? 'bg-yellow-100 text-yellow-800'
                   : 'bg-gray-100 text-gray-800'
-              }`}
+                }`}
             >
               {campaign.status || 'Unknown'}
             </span>
@@ -467,11 +492,10 @@ export default function CampaignDetailPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition ${
-                  activeTab === tab
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition ${activeTab === tab
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                  }`}
               >
                 {tab}
               </button>
@@ -593,30 +617,59 @@ export default function CampaignDetailPage() {
           {activeTab === 'operators' && (
             <div className="space-y-4">
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">Assign Operator</h3>
-                <p className="text-sm text-gray-600 mb-3">Add operators to handle calls for this campaign</p>
+                <h3 className="font-semibold mb-2">Assign Operators</h3>
+                <p className="text-sm text-gray-600 mb-3">Select operators to handle calls for this campaign</p>
+
+                {/* Multi-select checkboxes */}
+                <div className="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto bg-white mb-3">
+                  {allOperators.filter(op => !assignedOperators.some(assigned => assigned.id === op.id)).length === 0 ? (
+                    <p className="text-sm text-gray-500">All operators are already assigned</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {allOperators
+                        .filter(op => !assignedOperators.some(assigned => assigned.id === op.id))
+                        .map((op) => (
+                          <label
+                            key={op.id}
+                            className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedOperators.includes(String(op.id))}
+                              onChange={(e) => {
+                                const operatorId = String(op.id);
+                                setSelectedOperators(prev =>
+                                  e.target.checked
+                                    ? [...prev, operatorId]
+                                    : prev.filter(id => id !== operatorId)
+                                );
+                              }}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {op.name || op.login || op.id}
+                            </span>
+                          </label>
+                        ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Selection counter */}
+                {selectedOperators.length > 0 && (
+                  <p className="text-sm text-gray-600 mb-3">
+                    {selectedOperators.length} operator{selectedOperators.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+
+                {/* Action buttons */}
                 <div className="flex gap-2">
-                  <select
-                    multiple
-                    value={selectedOperators}
-                    onChange={(e) => setSelectedOperators(Array.from(e.target.selectedOptions, option => option.value))}
-                    className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  >
-                    <option value="">Select an operator...</option>
-                    {allOperators
-                      .filter(op => !assignedOperators.some(assigned => assigned.id === op.id))
-                      .map((op) => (
-                        <option key={op.id} value={op.id}>
-                          {op.name || op.login || op.id}
-                        </option>
-                      ))}
-                  </select>
                   <button
                     onClick={handleAssignOperator}
                     disabled={selectedOperators.length === 0 || isAssigning}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    {isAssigning ? 'Assigning...' : 'Assign Operator'}
+                    {isAssigning ? 'Assigning...' : `Assign Selected (${selectedOperators.length})`}
                   </button>
                   <button
                     onClick={handleAssignAllOperators}
@@ -736,12 +789,11 @@ export default function CampaignDetailPage() {
                         <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="py-3 px-4 font-mono text-sm">{num.phone || num.number || 'N/A'}</td>
                           <td className="py-3 px-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              num.status === 'answered' ? 'bg-green-100 text-green-800' :
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${num.status === 'answered' ? 'bg-green-100 text-green-800' :
                               num.status === 'no_answer' ? 'bg-yellow-100 text-yellow-800' :
-                              num.status === 'busy' ? 'bg-orange-100 text-orange-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
+                                num.status === 'busy' ? 'bg-orange-100 text-orange-800' :
+                                  'bg-gray-100 text-gray-800'
+                              }`}>
                               {num.status || 'Unknown'}
                             </span>
                           </td>
@@ -832,16 +884,15 @@ export default function CampaignDetailPage() {
                               <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                                 <td className="py-3 px-4 font-mono text-sm">{call.phoneNumber}</td>
                                 <td className="py-3 px-4">
-                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    call.status === 'answered' ? 'bg-green-100 text-green-800' :
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${call.status === 'answered' ? 'bg-green-100 text-green-800' :
                                     call.status === 'missed' ? 'bg-yellow-100 text-yellow-800' :
-                                    call.status === 'failed' ? 'bg-red-100 text-red-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
+                                      call.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                        'bg-gray-100 text-gray-800'
+                                    }`}>
                                     {call.status === 'answered' ? '✓ Answered' :
-                                     call.status === 'missed' ? '✗ Missed' :
-                                     call.status === 'failed' ? '✗ Failed' :
-                                     'Unknown'}
+                                      call.status === 'missed' ? '✗ Missed' :
+                                        call.status === 'failed' ? '✗ Failed' :
+                                          'Unknown'}
                                   </span>
                                 </td>
                                 <td className="py-3 px-4">{call.duration}s</td>

@@ -122,7 +122,9 @@ export class SipuniAPI {
    * Select a phone number/line for campaign
    */
   async selectPhoneNumber(campaignId: string, lineId: string): Promise<any> {
+    console.log('[Frontend API] selectPhoneNumber called:', { campaignId, lineId });
     const response = await this.client.put(`/api/campaigns/select-line`, { campaignId, lineId });
+    console.log('[Frontend API] selectPhoneNumber response:', response.data);
     return response.data.data;
   }
 
@@ -163,6 +165,22 @@ export class SipuniAPI {
    */
   async assignOperators(campaignId: string, operatorIds: number[]): Promise<any> {
     const response = await this.client.post(`/api/campaigns/${campaignId}/operators`, { operatorIds });
+    return response.data.data;
+  }
+
+  /**
+   * Unassign a single operator from campaign
+   */
+  async unassignOperator(campaignId: string, operatorId: string): Promise<any> {
+    const response = await this.client.delete(`/api/campaigns/${campaignId}/operators/${operatorId}`);
+    return response.data.data;
+  }
+
+  /**
+   * Unassign multiple operators from campaign
+   */
+  async unassignOperators(campaignId: string, operatorIds: string[]): Promise<any> {
+    const response = await this.client.post(`/api/campaigns/${campaignId}/operators/remove`, { operatorIds });
     return response.data.data;
   }
 

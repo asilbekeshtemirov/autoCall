@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useProtected } from '@/lib/use-protected';
@@ -10,6 +10,7 @@ import Link from 'next/link';
 interface FormData {
   name: string;
   description: string;
+  operatorIds: string[];  // Multi-select operators
   cooldown?: number;
   maxConnections?: number;
   strategy?: number;
@@ -24,14 +25,47 @@ export default function CreateCampaignPage() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
+    operatorIds: [],
     cooldown: 60,
     maxConnections: 1,
     strategy: 1,
     type: 'predict',
   });
 
+  const [operators, setOperators] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading) {
+      loadOperators();
+    }
+  }, [authLoading]);
+
+  const loadOperators = async () => {
+    try {
+      setError(null);
+      const api = getSipuniAPI();
+
+      console.log('[CreateCampaignPage] Loading operators...');
+
+      const operatorsData = await api.getEmployees().catch((err) => {
+        console.warn('[CreateCampaignPage] Failed to fetch operators:', err);
+        return [];
+      });
+
+      console.log('[CreateCampaignPage] Operators Data:', operatorsData);
+
+      setOperators(Array.isArray(operatorsData) ? operatorsData : []);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load operators';
+      console.error('[CreateCampaignPage] Error loading data:', message, err);
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -70,35 +104,15 @@ export default function CreateCampaignPage() {
 
       console.log('[CreateCampaignPage] Campaign created:', result);
 
-      // Auto-select phone line after campaign creation
-      if (result && result.id) {
+      // Assign operators if any were selected
+      if (formData.operatorIds.length > 0 && result?.id) {
         try {
-          console.log('[CreateCampaignPage] Fetching available phone lines for campaign:', result.id);
-
-          // Fetch available lines for this campaign
-          const linesResponse = await api.getAvailableLines(String(result.id));
-          console.log('[CreateCampaignPage] Available lines:', linesResponse);
-
-          // Find the line marked as selected: true (default line)
-          const defaultLine = linesResponse.find((line: any) => line.selected === true);
-
-          if (defaultLine) {
-            console.log('[CreateCampaignPage] Auto-selecting default line:', defaultLine.id, defaultLine.name);
-
-            // Select this line for the campaign
-            await api.selectPhoneNumber(String(result.id), String(defaultLine.id));
-
-            console.log('[CreateCampaignPage] Phone line selected successfully');
-          } else if (linesResponse.length > 0) {
-            // If no default, select the first available line
-            console.log('[CreateCampaignPage] No default line, selecting first available:', linesResponse[0].id);
-            await api.selectPhoneNumber(String(result.id), String(linesResponse[0].id));
-          } else {
-            console.warn('[CreateCampaignPage] No phone lines available for selection');
-          }
-        } catch (lineError) {
-          console.error('[CreateCampaignPage] Failed to select phone line:', lineError);
-          // Don't fail the whole operation if line selection fails
+          console.log('[CreateCampaignPage] Assigning operators:', formData.operatorIds);
+          await api.assignOperators(String(result.id), formData.operatorIds.map(id => parseInt(id)));
+          console.log('[CreateCampaignPage] Operators assigned successfully');
+        } catch (opError) {
+          console.error('[CreateCampaignPage] Failed to assign operators:', opError);
+          // Don't fail the whole operation if operator assignment fails
         }
       }
 
@@ -119,7 +133,7 @@ export default function CreateCampaignPage() {
     window.location.href = '/login';
   };
 
-  if (authLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -202,6 +216,51 @@ export default function CreateCampaignPage() {
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
               />
+            </div>
+
+            {/* Operator Selection - Multi-select with checkboxes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assign Operators (Optional)
+              </label>
+              <div className="border border-gray-300 rounded-lg p-4 max-h-48 overflow-y-auto bg-white">
+                {operators.length === 0 ? (
+                  <p className="text-sm text-gray-500">No operators available</p>
+                ) : (
+                  <div className="space-y-2">
+                    {operators.map((op) => (
+                      <label
+                        key={op.id}
+                        className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.operatorIds.includes(String(op.id))}
+                          onChange={(e) => {
+                            const operatorId = String(op.id);
+                            setFormData((prev) => ({
+                              ...prev,
+                              operatorIds: e.target.checked
+                                ? [...prev.operatorIds, operatorId]
+                                : prev.operatorIds.filter((id) => id !== operatorId),
+                            }));
+                          }}
+                          disabled={isSubmitting}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">
+                          {op.name || op.email || op.id}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {formData.operatorIds.length > 0 && (
+                <p className="text-sm text-gray-600 mt-2">
+                  {formData.operatorIds.length} operator{formData.operatorIds.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
             </div>
 
 

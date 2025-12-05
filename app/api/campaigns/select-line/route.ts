@@ -1,6 +1,6 @@
 /**
  * PUT /api/campaigns/select-line - Select a phone number/line for campaign
- * Sets selected: true on the specified line in Sipuni using PUT method
+ * Updates the campaign's outLineId to assign the line
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,20 +20,24 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      console.log('[API /campaigns/select-line] Selecting line:', lineId, 'for campaign:', campaignId);
-      console.log('[API /campaigns/select-line] Request body:', { id: lineId, selected: true });
+      console.log('[API /campaigns/select-line] Assigning line:', lineId, 'to campaign:', campaignId);
 
-      // Update the line to set selected: true in Sipuni using selectLine method with PATCH
-      const response = await SipuniAPI.selectLine(campaignId, lineId, true);
+      // Update campaign with the selected line ID
+      // This actually assigns the line to the campaign (not just marking it selected)
+      const updateData = {
+        outLineId: parseInt(lineId, 10)
+      };
 
-      console.log('[API /campaigns/select-line] Full Sipuni response:', JSON.stringify(response, null, 2));
-      console.log('[API /campaigns/select-line] Response status code:', response?.statusCode);
+      console.log('[API /campaigns/select-line] Updating campaign with:', updateData);
+
+      const response = await SipuniAPI.updateCampaign(campaignId, updateData);
+
+      console.log('[API /campaigns/select-line] Campaign updated:', JSON.stringify(response, null, 2));
       console.log('[API /campaigns/select-line] Response success:', response?.success);
-      console.log('[API /campaigns/select-line] Selected field in data:', response?.data?.map((d: any) => ({ id: d.id, name: d.name, selected: d.selected })));
 
       return NextResponse.json({
         success: true,
-        message: 'Phone number selected',
+        message: 'Phone line assigned to campaign',
         data: response,
       });
     } catch (error: any) {
@@ -44,7 +48,7 @@ export async function PUT(request: NextRequest) {
         status: error.response?.status,
       });
       return NextResponse.json(
-        { error: error.message || 'Failed to select phone number' },
+        { error: error.message || 'Failed to assign phone line' },
         { status: 500 }
       );
     }
