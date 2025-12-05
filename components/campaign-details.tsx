@@ -2,34 +2,20 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { getSipuniAPI } from '@/lib/sipuni-api';
-import type { SipuniCampaign, SipuniOperator } from '@/lib/sipuni-api';
+import type { SipuniCampaign, SipuniCallResult } from '@/lib/sipuni-api';
 
 interface CampaignDetailsProps {
   campaignId: string;
   onClose?: () => void;
 }
 
-interface CallResult {
-  id: string;
-  number: string;
-  operator?: string;
-  status: string;
-  duration?: number;
-  timestamp?: string;
-  [key: string]: any;
-}
-
 export default function CampaignDetails({ campaignId, onClose }: CampaignDetailsProps) {
   const [campaign, setCampaign] = useState<SipuniCampaign | null>(null);
   const [operators, setOperators] = useState<any[]>([]);
-  const [callResults, setCallResults] = useState<CallResult[]>([]);
+  const [callResults, setCallResults] = useState<SipuniCallResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'operators' | 'results'>('overview');
-
-  useEffect(() => {
-    loadCampaignDetails();
-  }, [loadCampaignDetails]);
 
   const loadCampaignDetails = useCallback(async () => {
     try {
@@ -54,6 +40,10 @@ export default function CampaignDetails({ campaignId, onClose }: CampaignDetails
       setLoading(false);
     }
   }, [campaignId]);
+
+  useEffect(() => {
+    loadCampaignDetails();
+  }, [loadCampaignDetails]);
 
   if (loading) {
     return (
@@ -105,11 +95,10 @@ export default function CampaignDetails({ campaignId, onClose }: CampaignDetails
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-3 font-medium border-b-2 transition ${
-                activeTab === tab
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-4 py-3 font-medium border-b-2 transition ${activeTab === tab
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
             >
               {tab === 'overview' ? 'Overview' : tab === 'operators' ? 'Operators' : 'Call Results'}
             </button>
@@ -128,13 +117,12 @@ export default function CampaignDetails({ campaignId, onClose }: CampaignDetails
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Status</p>
             <span
-              className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                campaign.status === 'active'
-                  ? 'bg-green-100 text-green-800'
-                  : campaign.status === 'paused'
+              className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${campaign.status === 'active'
+                ? 'bg-green-100 text-green-800'
+                : campaign.status === 'paused'
                   ? 'bg-yellow-100 text-yellow-800'
                   : 'bg-gray-100 text-gray-800'
-              }`}
+                }`}
             >
               {campaign.status || 'inactive'}
             </span>
@@ -214,25 +202,22 @@ export default function CampaignDetails({ campaignId, onClose }: CampaignDetails
                 <tbody>
                   {callResults.map((result, idx) => (
                     <tr key={result.id || idx} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono">{result.number}</td>
+                      <td className="px-4 py-3 font-mono">{result.phone}</td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                            result.status === 'completed'
-                              ? 'bg-green-100 text-green-800'
-                              : result.status === 'missed'
+                          className={`inline-block px-2 py-1 rounded text-xs font-medium ${result.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : result.status === 'missed'
                               ? 'bg-red-100 text-red-800'
                               : 'bg-gray-100 text-gray-800'
-                          }`}
+                            }`}
                         >
                           {result.status}
                         </span>
                       </td>
                       <td className="px-4 py-3">{result.duration ? `${result.duration}s` : '-'}</td>
-                      <td className="px-4 py-3">{result.operator || '-'}</td>
-                      <td className="px-4 py-3 text-xs">
-                        {result.timestamp ? new Date(result.timestamp).toLocaleString() : '-'}
-                      </td>
+                      <td className="px-4 py-3">-</td>
+                      <td className="px-4 py-3 text-xs">-</td>
                     </tr>
                   ))}
                 </tbody>

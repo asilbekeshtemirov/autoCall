@@ -20,7 +20,7 @@ interface RouteParams {
  * GET /api/campaigns/[id]
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, _req) => {
     try {
       const { id } = params;
 
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * PUT /api/campaigns/[id]
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, req) => {
     try {
       const { id } = params;
       const body = await req.json();
@@ -87,7 +87,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
  * DELETE /api/campaigns/[id]
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, _req) => {
     try {
       const { id } = params;
 

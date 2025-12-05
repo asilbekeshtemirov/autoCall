@@ -15,7 +15,7 @@ interface RouteParams {
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, _req) => {
     try {
       const { id } = params;
 

@@ -6,7 +6,7 @@ async function assignOperatorHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(req, async (user, request) => {
+  return withAuth(req, async (_user, request) => {
     try {
       const { id: campaignId } = params;
       const { operatorId } = await request.json();
@@ -18,7 +18,7 @@ async function assignOperatorHandler(
         );
       }
 
-      const data = await SipuniAPI.assignOperator(campaignId, operatorId);
+      const data = await SipuniAPI.assignOperators(campaignId, [operatorId]);
 
       return NextResponse.json({
         success: true,

@@ -12,7 +12,7 @@ import { SipuniAPI } from '@/lib/sipuni-server';
  * GET /api/lines
  */
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, _req) => {
     try {
       console.log('[API /lines] Fetching phone lines from Sipuni...');
       const response = await SipuniAPI.getPhoneLines();

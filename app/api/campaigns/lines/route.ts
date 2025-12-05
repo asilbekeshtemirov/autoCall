@@ -8,7 +8,7 @@ import { withAuth } from '@/lib/auth-middleware';
 import { callSipuni } from '@/lib/sipuni-server';
 
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, _req) => {
     try {
       const { searchParams } = new URL(request.url);
       const campaignId = searchParams.get('campaignId');

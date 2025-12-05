@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useProtected } from '@/lib/use-protected';
 import { getSipuniAPI } from '@/lib/sipuni-api';
@@ -29,7 +29,6 @@ export default function CampaignDetailPage() {
   const [activeTab, setActiveTab] = useState('details');
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [allOperators, setAllOperators] = useState<any[]>([]);
   const [assignedOperators, setAssignedOperators] = useState<any[]>([]);
   const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
@@ -38,7 +37,7 @@ export default function CampaignDetailPage() {
   const [isAssigningAll, setIsAssigningAll] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
   const [uploadedNumbers, setUploadedNumbers] = useState<any[]>([]);
-  const [callResults, setCallResults] = useState<any[]>([]);
+  const [callResults, setCallResults] = useState<any>(null);
   const [availableNumbers, setAvailableNumbers] = useState<any[]>([]);
   const [selectedNumber, setSelectedNumber] = useState('');
   const [isSelectingNumber, setIsSelectingNumber] = useState(false);
@@ -68,7 +67,7 @@ export default function CampaignDetailPage() {
       console.log('[loadAvailableNumbers] Lines:', lines);
 
       // Process lines - ensure we have id, name, selected fields
-      let processedLines = [];
+      let processedLines: any[] = [];
       if (Array.isArray(lines)) {
         processedLines = lines.map((line: any) => ({
           id: line.id,
@@ -207,7 +206,6 @@ export default function CampaignDetailPage() {
     if (!confirm('Are you sure you want to delete this campaign? This action cannot be undone.')) {
       return;
     }
-    setIsDeleting(true);
     try {
       const api = getSipuniAPI();
       await api.deleteCampaign(campaignId);
@@ -216,7 +214,6 @@ export default function CampaignDetailPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete campaign';
       setError(message);
-      setIsDeleting(false);
     }
   };
 
@@ -482,6 +479,17 @@ export default function CampaignDetailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             View Results
+          </button>
+
+          <button
+            onClick={handleDeleteCampaign}
+            className="inline-flex items-center gap-2 bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 font-semibold py-2 px-4 rounded-lg transition"
+            title="Delete Campaign"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Delete
           </button>
         </div>
 

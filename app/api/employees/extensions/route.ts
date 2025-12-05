@@ -8,7 +8,7 @@ import { withAuth } from '@/lib/auth-middleware';
 import { SipuniAPI } from '@/lib/sipuni-server';
 
 async function getEmployeeExtensionsHandler(req: NextRequest) {
-  return withAuth(req, async (user, req) => {
+  return withAuth(req, async (_user, _innerReq) => {
     try {
       const data = await SipuniAPI.getEmployeeExtensions();
       return NextResponse.json({ success: true, data });

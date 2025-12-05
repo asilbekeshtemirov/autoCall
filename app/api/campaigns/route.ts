@@ -14,7 +14,7 @@ import { formatCampaign, formatCampaignList } from '@/lib/response-formatter';
  * GET /api/campaigns?max=50&pos=0
  */
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, req) => {
     try {
       const { searchParams } = new URL(req.url);
       const max = parseInt(searchParams.get('max') || '50');
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
  * Accepts simplified campaign data from frontend and maps it to Sipuni API format
  */
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, req) => {
     try {
       const body = await req.json();
 

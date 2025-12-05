@@ -12,7 +12,7 @@ import { SipuniAPI } from '@/lib/sipuni-server';
  * GET /api/employees
  */
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, _req) => {
     try {
       console.log('[API /employees] Fetching employees from Sipuni...');
       const response = await SipuniAPI.getEmployees();

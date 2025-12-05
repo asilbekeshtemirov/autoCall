@@ -13,7 +13,7 @@ import { SipuniAPI } from '@/lib/sipuni-server';
  * GET /api/campaigns?max=50&pos=0
  */
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, req) => {
     try {
       const { searchParams } = new URL(req.url);
       const max = parseInt(searchParams.get('max') || '50');
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
  * POST /api/campaigns
  */
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, req) => {
     try {
       const body = await req.json();
 

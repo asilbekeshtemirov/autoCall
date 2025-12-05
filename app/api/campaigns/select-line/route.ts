@@ -8,7 +8,7 @@ import { withAuth } from '@/lib/auth-middleware';
 import { SipuniAPI } from '@/lib/sipuni-server';
 
 export async function PUT(request: NextRequest) {
-  return withAuth(request, async (user, req) => {
+  return withAuth(request, async (_user, req) => {
     try {
       const body = await req.json();
       const { lineId, campaignId } = body;
