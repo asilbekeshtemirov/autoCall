@@ -133,6 +133,26 @@ export default function CreateCampaignPage() {
       // Campaign ID ni olish: result.data.autocall.id
       const campaignId = result?.data?.autocall?.id || result?.autocall?.id || result?.id;
 
+      // Sipuni API ba'zi parametrlarni yaratishda qabul qilmaydi
+      // Shuning uchun kampaniyani darhol yangilaymiz
+      if (campaignId) {
+        try {
+          console.log('[CreateCampaignPage] Updating campaign with additional parameters...');
+          await api.updateCampaign(String(campaignId), {
+            callAttemptTime: formData.callAttemptTime,
+            maxConnections: formData.maxConnections,
+            schedule_timeStartHour: parseInt(formData.scheduleStartHour) || null,
+            schedule_timeStartMinute: parseInt(formData.scheduleStartMinute) || 0,
+            schedule_timeEndHour: parseInt(formData.scheduleEndHour) || null,
+            schedule_timeEndMinute: parseInt(formData.scheduleEndMinute) || 0,
+            timezone: 'Asia/Tashkent',
+          });
+          console.log('[CreateCampaignPage] Campaign updated successfully');
+        } catch (updateError) {
+          console.error('[CreateCampaignPage] Failed to update campaign:', updateError);
+        }
+      }
+
       // Operatorlarni biriktirish
       if (formData.operatorIds.length > 0 && campaignId) {
         try {
