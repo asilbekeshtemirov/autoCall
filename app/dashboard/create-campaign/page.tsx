@@ -11,6 +11,7 @@ interface FormData {
   name: string;
   operatorIds: string[];
   maxConnections: number;
+  callAttemptTime: number;
   scheduleStartHour: string;
   scheduleStartMinute: string;
   scheduleEndHour: string;
@@ -26,6 +27,7 @@ export default function CreateCampaignPage() {
     name: '',
     operatorIds: [],
     maxConnections: 1,
+    callAttemptTime: 60,
     scheduleStartHour: '09',
     scheduleStartMinute: '00',
     scheduleEndHour: '18',
@@ -93,7 +95,7 @@ export default function CreateCampaignPage() {
         audioId: null,
         audioName: '',
         autoAnswer: false,
-        callAttemptTime: 60,
+        callAttemptTime: formData.callAttemptTime,
         day_0: false,
         day_1: false,
         day_2: false,
@@ -243,6 +245,24 @@ export default function CreateCampaignPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <p className="text-xs text-gray-500 mt-1">Bir vaqtda qancha qo'ng'iroq amalga oshirilishini belgilang</p>
+            </div>
+
+            {/* Call Attempt Time */}
+            <div>
+              <label htmlFor="callAttemptTime" className="block text-sm font-medium text-gray-700 mb-2">
+                Dozvonya vaqti (sekundlarda) <span className="text-red-600">*</span>
+              </label>
+              <input
+                id="callAttemptTime"
+                type="number"
+                min="30"
+                max="120"
+                value={formData.callAttemptTime}
+                onChange={(e) => setFormData(prev => ({ ...prev, callAttemptTime: Math.max(30, parseInt(e.target.value) || 30) }))}
+                disabled={isSubmitting}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-1">Mijoz javob berishi uchun qancha vaqt kutilishi (minimal 30 sekund)</p>
             </div>
 
             {/* Schedule Time */}
