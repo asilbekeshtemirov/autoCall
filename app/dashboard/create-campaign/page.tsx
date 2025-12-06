@@ -73,7 +73,7 @@ export default function CreateCampaignPage() {
 
       // Aynan Sipuni dashboard yuborgan format
       const campaignData = {
-        type: 'default2',
+        type: 'predict',
         workMode: 'default',
         file: null,
         fileName: null,
