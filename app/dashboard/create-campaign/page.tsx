@@ -10,6 +10,11 @@ import Link from 'next/link';
 interface FormData {
   name: string;
   operatorIds: string[];
+  maxConnections: number;
+  scheduleStartHour: string;
+  scheduleStartMinute: string;
+  scheduleEndHour: string;
+  scheduleEndMinute: string;
 }
 
 export default function CreateCampaignPage() {
@@ -20,6 +25,11 @@ export default function CreateCampaignPage() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     operatorIds: [],
+    maxConnections: 1,
+    scheduleStartHour: '09',
+    scheduleStartMinute: '00',
+    scheduleEndHour: '18',
+    scheduleEndMinute: '00',
   });
 
   const [operators, setOperators] = useState<any[]>([]);
@@ -83,7 +93,7 @@ export default function CreateCampaignPage() {
         audioId: null,
         audioName: '',
         autoAnswer: false,
-        callAttemptTime: 30,
+        callAttemptTime: 60,
         day_0: false,
         day_1: false,
         day_2: false,
@@ -95,7 +105,7 @@ export default function CreateCampaignPage() {
         distributor: false,
         inTree: '',
         lines: '',
-        maxConnections: 1,
+        maxConnections: formData.maxConnections,
         minDuration: '20',
         predictCoef: 1,
         priority: '',
@@ -106,7 +116,11 @@ export default function CreateCampaignPage() {
         timeMax: '',
         timeMin: '',
         timeStart: null,
-        timezone: 'Europe/Moscow',
+        timezone: 'Asia/Tashkent',
+        schedule_timeStartHour: parseInt(formData.scheduleStartHour) || null,
+        schedule_timeStartMinute: parseInt(formData.scheduleStartMinute) || null,
+        schedule_timeEndHour: parseInt(formData.scheduleEndHour) || null,
+        schedule_timeEndMinute: parseInt(formData.scheduleEndMinute) || null,
       };
 
       console.log('[CreateCampaignPage] Submitting campaign data:', campaignData);
@@ -211,6 +225,88 @@ export default function CreateCampaignPage() {
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
+            </div>
+
+            {/* Max Connections */}
+            <div>
+              <label htmlFor="maxConnections" className="block text-sm font-medium text-gray-700 mb-2">
+                Parallel qo'ng'iroqlar soni (Max Connections) <span className="text-red-600">*</span>
+              </label>
+              <input
+                id="maxConnections"
+                type="number"
+                min="1"
+                max="100"
+                value={formData.maxConnections}
+                onChange={(e) => setFormData(prev => ({ ...prev, maxConnections: parseInt(e.target.value) || 1 }))}
+                disabled={isSubmitting}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-1">Bir vaqtda qancha qo'ng'iroq amalga oshirilishini belgilang</p>
+            </div>
+
+            {/* Schedule Time */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ish vaqti jadvali <span className="text-red-600">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Start Time */}
+                <div className="border border-gray-300 rounded-lg p-4">
+                  <p className="text-sm font-medium text-gray-600 mb-2">Boshlanish vaqti</p>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="number"
+                      min="0"
+                      max="23"
+                      value={formData.scheduleStartHour}
+                      onChange={(e) => setFormData(prev => ({ ...prev, scheduleStartHour: e.target.value.padStart(2, '0') }))}
+                      disabled={isSubmitting}
+                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      placeholder="09"
+                    />
+                    <span className="text-xl font-bold text-gray-500">:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={formData.scheduleStartMinute}
+                      onChange={(e) => setFormData(prev => ({ ...prev, scheduleStartMinute: e.target.value.padStart(2, '0') }))}
+                      disabled={isSubmitting}
+                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      placeholder="00"
+                    />
+                  </div>
+                </div>
+                {/* End Time */}
+                <div className="border border-gray-300 rounded-lg p-4">
+                  <p className="text-sm font-medium text-gray-600 mb-2">Tugash vaqti</p>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="number"
+                      min="0"
+                      max="23"
+                      value={formData.scheduleEndHour}
+                      onChange={(e) => setFormData(prev => ({ ...prev, scheduleEndHour: e.target.value.padStart(2, '0') }))}
+                      disabled={isSubmitting}
+                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      placeholder="18"
+                    />
+                    <span className="text-xl font-bold text-gray-500">:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={formData.scheduleEndMinute}
+                      onChange={(e) => setFormData(prev => ({ ...prev, scheduleEndMinute: e.target.value.padStart(2, '0') }))}
+                      disabled={isSubmitting}
+                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      placeholder="00"
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">Kampaniya faqat shu vaqtlar orasida ishlaydi (Asia/Tashkent timezone)</p>
             </div>
 
             {/* Operator Selection */}
